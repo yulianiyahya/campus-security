@@ -45,7 +45,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if (empty($department)) {
             $error .= ' Department tidak boleh kosong.';
         }
-        
     } elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
         $error = 'Format email tidak valid!';
     } elseif (strlen($password) < 6) {
