@@ -81,24 +81,28 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['reset_password'])) {
     exit();
 }
 
-// Handle Delete User
+// Handle Soft Delete User
 if (isset($_GET['delete']) && isset($_GET['id'])) {
     $user_id = (int)$_GET['id'];
-    
-    // Don't allow deleting own account
+
+    // Tidak boleh hapus akun sendiri
     if ($user_id == $_SESSION['user_id']) {
         $_SESSION['error_message'] = "Tidak dapat menghapus akun sendiri!";
     } else {
         try {
-            $sql = "DELETE FROM users WHERE id = ?";
+            // Soft delete → ubah status menjadi inactive + isi deleted_at
+            $sql = "UPDATE users 
+                    SET status = 'inactive', deleted_at = NOW() 
+                    WHERE id = ?";
             $stmt = $pdo->prepare($sql);
             $stmt->execute([$user_id]);
-            
-            $_SESSION['success_message'] = "User berhasil dihapus!";
+
+            $_SESSION['success_message'] = "User berhasil dinonaktifkan (soft delete)!";
         } catch (PDOException $e) {
-            $_SESSION['error_message'] = "Gagal menghapus user: " . $e->getMessage();
+            $_SESSION['error_message'] = "Gagal melakukan soft delete: " . $e->getMessage();
         }
     }
+
     header('Location: manage_user.php');
     exit();
 }
