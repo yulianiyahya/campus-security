@@ -197,6 +197,9 @@ include_once '../includes/header.php';
 include_once '../includes/navbar_admin.php';
 ?>
 
+<!-- Content Container with Top Spacing -->
+<div class="container-fluid" style="padding-top: 30px;">
+
 <div class="row mb-4">
     <div class="col-12">
         <h2><i class="fas fa-clipboard-list me-2"></i>Manajemen Laporan</h2>
@@ -441,6 +444,9 @@ include_once '../includes/navbar_admin.php';
         <?php endif; ?>
     </div>
 </div>
+
+</div>
+<!-- End Content Container -->
 
 <!-- Assign Officer Modal -->
 <div class="modal fade" id="assignModal" tabindex="-1">
