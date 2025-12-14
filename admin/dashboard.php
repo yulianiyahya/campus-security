@@ -98,6 +98,9 @@ require_once '../includes/header.php';
 require_once '../includes/navbar_admin.php';
 ?>
 
+<!-- Content Container with Top Spacing -->
+<div class="container-fluid" style="padding-top: 30px;">
+
 <!-- Page Header with Logout Button -->
 <div class="d-flex justify-content-between align-items-center mb-4">
     <div>
@@ -350,6 +353,9 @@ require_once '../includes/navbar_admin.php';
         </div>
     </div>
 </div>
+
+</div>
+<!-- End Content Container -->
 
 <?php if ($stats['total_reports'] > 0): ?>
 <!-- Chart.js Script -->

@@ -30,7 +30,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $confirm_password = $_POST['confirm_password'] ?? '';
     $user_type = $_POST['user_type'] ?? 'mahasiswa';
     
-    // PERBAIKAN: Ambil department dari select yang aktif
+    // Ambil department dari input yang sesuai dengan user_type
+    $department = '';
     if ($user_type === 'mahasiswa') {
         $department = clean_input($_POST['department_mahasiswa'] ?? '');
     } else {
@@ -40,18 +41,34 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     // Validasi input
     if (empty($nim_nip) || empty($nama) || empty($email) || empty($password) || empty($department)) {
         $error = 'Semua field wajib diisi!';
-        
-        // Debug spesifik untuk development (HAPUS di production!)
-        if (empty($department)) {
-            $error .= ' Department tidak boleh kosong.';
-        }
     } elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
         $error = 'Format email tidak valid!';
-    } elseif (strlen($password) < 6) {
-        $error = 'Password minimal 6 karakter!';
-    } elseif ($password !== $confirm_password) {
-        $error = 'Password dan konfirmasi password tidak cocok!';
     } else {
+        // Validasi domain email sesuai tipe user
+        $email_domain = substr(strrchr($email, "@"), 1);
+        
+        if ($user_type === 'mahasiswa') {
+            if ($email_domain !== 'mhs.ubpkarawang.ac.id') {
+                $error = 'Email mahasiswa harus menggunakan domain @mhs.ubpkarawang.ac.id';
+            }
+        } else {
+            if ($email_domain !== 'ubpkarawang.ac.id') {
+                $error = 'Email dosen/staff harus menggunakan domain @ubpkarawang.ac.id';
+            }
+        }
+        
+        // Validasi password
+        if (!$error) {
+            if (strlen($password) < 6) {
+                $error = 'Password minimal 6 karakter!';
+            } elseif ($password !== $confirm_password) {
+                $error = 'Password dan konfirmasi password tidak cocok!';
+            }
+        }
+    }
+    
+    // Jika tidak ada error, lanjutkan proses registrasi
+    if (!$error) {
         try {
             // Cek apakah NIM/NIP sudah terdaftar
             $stmt = $pdo->prepare("SELECT id FROM users WHERE nim_nip = ?");
@@ -65,19 +82,32 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 if ($stmt->fetch()) {
                     $error = 'Email sudah terdaftar!';
                 } else {
-                    // Hash password dengan benar
+                    // Hash password
                     $hashed_password = password_hash($password, PASSWORD_DEFAULT);
                     
-                    // Insert user baru
+                    // Insert user dengan status active (langsung aktif tanpa verifikasi)
                     $stmt = $pdo->prepare("
-                        INSERT INTO users (nim_nip, nama, email, phone, password, role, department, status, created_at) 
-                        VALUES (?, ?, ?, ?, ?, 'user', ?, 'active', NOW())
+                        INSERT INTO users (
+                            nim_nip, nama, email, phone, password, role, department, 
+                            status, email_verified, created_at
+                        ) 
+                        VALUES (?, ?, ?, ?, ?, 'user', ?, 'active', 1, NOW())
                     ");
                     
-                    $result = $stmt->execute([$nim_nip, $nama, $email, $no_hp, $hashed_password, $department]);
+                    $result = $stmt->execute([
+                        $nim_nip, 
+                        $nama, 
+                        $email, 
+                        $no_hp, 
+                        $hashed_password, 
+                        $department
+                    ]);
                     
                     if ($result) {
-                        redirect('login.php?registered=1');
+                        $success = 'Registrasi berhasil! Silakan login dengan akun Anda.';
+                        
+                        // Redirect ke login setelah 2 detik
+                        header("refresh:2;url=login.php");
                     } else {
                         $error = 'Terjadi kesalahan saat mendaftar. Silakan coba lagi.';
                     }
@@ -85,36 +115,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
         } catch (PDOException $e) {
             error_log("Registration Error: " . $e->getMessage());
-            $error = 'Terjadi kesalahan sistem. Silakan coba lagi.';
+            $error = 'Terjadi kesalahan sistem: ' . $e->getMessage();
         }
     }
 }
 
-
 // Daftar jurusan/program studi untuk mahasiswa
 $mahasiswa_departments = [
-    'Teknik Informatika',
-    'Teknik Elektro',
-    'Teknik Sipil',
-    'Teknik Mesin',
-    'Teknik Industri',
     'Manajemen',
     'Akuntansi',
-    'Ekonomi Pembangunan',
+    'Teknik Informatika',
+    'Sistem Informasi',
+    'Pendidikan Guru Sekolah Dasar',
+    'Pendidikan Pancasila dan Kewarganegaraan',
+    'Pendidikan Agama Islam',
+    'Psikologi',
     'Ilmu Hukum',
-    'Kedokteran',
-    'Keperawatan',
     'Farmasi',
-    'Matematika',
-    'Fisika',
-    'Kimia',
-    'Biologi',
-    'Ilmu Komunikasi',
-    'Ilmu Politik',
-    'Sosiologi',
-    'Sastra Indonesia',
-    'Sastra Inggris',
-    'Sastra Jepang'
+    'Teknik Industri',
+    'Teknik Mesin'
 ];
 
 // Daftar unit kerja untuk dosen/staff
@@ -122,10 +141,10 @@ $dosen_staff_departments = [
     'Fakultas Teknik',
     'Fakultas Ekonomi dan Bisnis',
     'Fakultas Hukum',
-    'Fakultas Kedokteran',
-    'Fakultas MIPA',
-    'Fakultas Ilmu Sosial dan Politik',
-    'Fakultas Sastra',
+    'Fakultas Keguruan dan Ilmu Pendidikan',
+    'Fakultas Farmasi',
+    'Fakultas Ilmu Komputer',
+    'Fakultas Psikologi',
     'Rektorat',
     'Administrasi Umum',
     'Sarana & Prasarana',
@@ -335,6 +354,13 @@ $dosen_staff_departments = [
             font-weight: 500;
             font-size: 0.9rem;
             padding: 1.15rem 1.2rem;
+        }
+
+        .email-hint {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            margin-top: 0.3rem;
+            font-style: italic;
         }
 
         .user-type-selector {
@@ -587,14 +613,14 @@ $dosen_staff_departments = [
             <?php if ($error): ?>
             <div class="alert alert-danger" role="alert">
                 <i class="fas fa-exclamation-circle me-2"></i>
-                <?php echo $error; ?>
+                <?php echo htmlspecialchars($error); ?>
             </div>
             <?php endif; ?>
             
             <?php if ($success): ?>
             <div class="alert alert-success" role="alert">
                 <i class="fas fa-check-circle me-2"></i>
-                <?php echo $success; ?>
+                <?php echo htmlspecialchars($success); ?>
             </div>
             <?php endif; ?>
             
@@ -619,7 +645,7 @@ $dosen_staff_departments = [
 
                 <div class="form-floating">
                     <input type="text" class="form-control" id="nim_nip" name="nim_nip" 
-                           placeholder="NIM/NIP" required autofocus>
+                           placeholder="NIM/NIP" required autofocus value="<?php echo htmlspecialchars($_POST['nim_nip'] ?? ''); ?>">
                     <label for="nim_nip">
                         <i class="fas fa-id-card me-2"></i><span id="nim_nip_label">NIM</span>
                     </label>
@@ -627,7 +653,7 @@ $dosen_staff_departments = [
                 
                 <div class="form-floating">
                     <input type="text" class="form-control" id="nama" name="nama" 
-                           placeholder="Nama Lengkap" required>
+                           placeholder="Nama Lengkap" required value="<?php echo htmlspecialchars($_POST['nama'] ?? ''); ?>">
                     <label for="nama">
                         <i class="fas fa-user me-2"></i>Nama Lengkap
                     </label>
@@ -635,15 +661,18 @@ $dosen_staff_departments = [
                 
                 <div class="form-floating">
                     <input type="email" class="form-control" id="email" name="email" 
-                           placeholder="Email" required>
+                           placeholder="Email" required value="<?php echo htmlspecialchars($_POST['email'] ?? ''); ?>">
                     <label for="email">
                         <i class="fas fa-envelope me-2"></i>Email
                     </label>
+                    <div class="email-hint" id="emailHint">
+                        Contoh: nama@mhs.ubpkarawang.ac.id
+                    </div>
                 </div>
                 
                 <div class="form-floating">
                     <input type="tel" class="form-control" id="no_hp" name="no_hp" 
-                           placeholder="No. HP">
+                           placeholder="No. HP" value="<?php echo htmlspecialchars($_POST['no_hp'] ?? ''); ?>">
                     <label for="no_hp">
                         <i class="fas fa-phone me-2"></i>No. HP (Opsional)
                     </label>
@@ -652,9 +681,10 @@ $dosen_staff_departments = [
                 <!-- Department untuk Mahasiswa -->
                 <div class="form-floating department-field active" id="department_mahasiswa">
                     <select class="form-select" name="department_mahasiswa" id="department_mahasiswa_select" required>
-                        <option value="" selected>Pilih Jurusan/Program Studi</option>
+                        <option value="">Pilih Jurusan/Program Studi</option>
                         <?php foreach ($mahasiswa_departments as $dept): ?>
-                        <option value="<?php echo htmlspecialchars($dept); ?>">
+                        <option value="<?php echo htmlspecialchars($dept); ?>" 
+                            <?php echo (isset($_POST['department_mahasiswa']) && $_POST['department_mahasiswa'] === $dept) ? 'selected' : ''; ?>>
                             <?php echo htmlspecialchars($dept); ?>
                         </option>
                         <?php endforeach; ?>
@@ -667,9 +697,10 @@ $dosen_staff_departments = [
                 <!-- Department untuk Dosen/Staff -->
                 <div class="form-floating department-field" id="department_dosen_staff">
                     <select class="form-select" name="department_dosen_staff" id="department_dosen_staff_select">
-                        <option value="" selected>Pilih Unit Kerja</option>
+                        <option value="">Pilih Unit Kerja</option>
                         <?php foreach ($dosen_staff_departments as $dept): ?>
-                        <option value="<?php echo htmlspecialchars($dept); ?>">
+                        <option value="<?php echo htmlspecialchars($dept); ?>"
+                            <?php echo (isset($_POST['department_dosen_staff']) && $_POST['department_dosen_staff'] === $dept) ? 'selected' : ''; ?>>
                             <?php echo htmlspecialchars($dept); ?>
                         </option>
                         <?php endforeach; ?>
@@ -725,32 +756,40 @@ $dosen_staff_departments = [
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     
     <script>
-        // Toggle User Type
+        // Toggle User Type dan Update Email Hint
         document.querySelectorAll('input[name="user_type"]').forEach(radio => {
             radio.addEventListener('change', function() {
-                const mahasiswaField = document.getElementById('department_mahasiswa');
-                const dosenStaffField = document.getElementById('department_dosen_staff');
-                const mahasiswaSelect = document.getElementById('department_mahasiswa_select');
-                const dosenStaffSelect = document.getElementById('department_dosen_staff_select');
-                const nimNipLabel = document.getElementById('nim_nip_label');
-                
-                if (this.value === 'mahasiswa') {
-                    mahasiswaField.classList.add('active');
-                    dosenStaffField.classList.remove('active');
-                    mahasiswaSelect.required = true;
-                    dosenStaffSelect.required = false;
-                    dosenStaffSelect.value = '';
-                    nimNipLabel.textContent = 'NIM';
-                } else {
-                    dosenStaffField.classList.add('active');
-                    mahasiswaField.classList.remove('active');
-                    dosenStaffSelect.required = true;
-                    mahasiswaSelect.required = false;
-                    mahasiswaSelect.value = '';
-                    nimNipLabel.textContent = 'NIP';
-                }
+                updateUserType();
             });
         });
+
+        function updateUserType() {
+            const userType = document.querySelector('input[name="user_type"]:checked').value;
+            const mahasiswaField = document.getElementById('department_mahasiswa');
+            const dosenStaffField = document.getElementById('department_dosen_staff');
+            const mahasiswaSelect = document.getElementById('department_mahasiswa_select');
+            const dosenStaffSelect = document.getElementById('department_dosen_staff_select');
+            const nimNipLabel = document.getElementById('nim_nip_label');
+            const emailHint = document.getElementById('emailHint');
+            
+            if (userType === 'mahasiswa') {
+                mahasiswaField.classList.add('active');
+                dosenStaffField.classList.remove('active');
+                mahasiswaSelect.required = true;
+                dosenStaffSelect.required = false;
+                dosenStaffSelect.value = '';
+                nimNipLabel.textContent = 'NIM';
+                emailHint.textContent = 'Contoh: nama@mhs.ubpkarawang.ac.id';
+            } else {
+                dosenStaffField.classList.add('active');
+                mahasiswaField.classList.remove('active');
+                dosenStaffSelect.required = true;
+                mahasiswaSelect.required = false;
+                mahasiswaSelect.value = '';
+                nimNipLabel.textContent = 'NIP';
+                emailHint.textContent = 'Contoh: nama@ubpkarawang.ac.id';
+            }
+        }
 
         // Toggle Password Visibility
         function togglePassword(inputId, iconId) {
@@ -808,12 +847,41 @@ $dosen_staff_departments = [
             strengthText.style.color = color;
         });
 
-        // Form Validation - PERBAIKAN DI SINI!
+        // Email Validation Real-time
+        document.getElementById('email').addEventListener('input', function() {
+            const email = this.value;
+            const userType = document.querySelector('input[name="user_type"]:checked').value;
+            const emailHint = document.getElementById('emailHint');
+            
+            if (email.includes('@')) {
+                const domain = email.split('@')[1];
+                
+                if (userType === 'mahasiswa') {
+                    if (domain && domain !== 'mhs.ubpkarawang.ac.id') {
+                        emailHint.textContent = '⚠️ Gunakan email @mhs.ubpkarawang.ac.id';
+                        emailHint.style.color = '#e63946';
+                    } else {
+                        emailHint.textContent = 'Contoh: nama@mhs.ubpkarawang.ac.id';
+                        emailHint.style.color = 'var(--text-secondary)';
+                    }
+                } else {
+                    if (domain && domain !== 'ubpkarawang.ac.id') {
+                        emailHint.textContent = '⚠️ Gunakan email @ubpkarawang.ac.id';
+                        emailHint.style.color = '#e63946';
+                    } else {
+                        emailHint.textContent = 'Contoh: nama@ubpkarawang.ac.id';
+                        emailHint.style.color = 'var(--text-secondary)';
+                    }
+                }
+            }
+        });
+
+        // Form Validation
         document.getElementById('registerForm').addEventListener('submit', function(e) {
             const password = document.getElementById('password').value;
             const confirmPassword = document.getElementById('confirm_password').value;
             const userType = document.querySelector('input[name="user_type"]:checked').value;
-            const departmentHidden = document.getElementById('department');
+            const email = document.getElementById('email').value;
             let department = '';
             
             // Ambil nilai department dari dropdown yang aktif
@@ -823,16 +891,32 @@ $dosen_staff_departments = [
                 department = document.getElementById('department_dosen_staff_select').value;
             }
             
-            // SET NILAI KE HIDDEN FIELD - INI YANG PENTING!
-            departmentHidden.value = department;
-            
-            // Validasi
+            // Validasi department
             if (!department) {
                 e.preventDefault();
                 alert('Silakan pilih jurusan/unit kerja!');
                 return false;
             }
             
+            // Validasi email domain
+            if (email.includes('@')) {
+                const emailDomain = email.split('@')[1];
+                if (userType === 'mahasiswa') {
+                    if (emailDomain !== 'mhs.ubpkarawang.ac.id') {
+                        e.preventDefault();
+                        alert('Email mahasiswa harus menggunakan domain @mhs.ubpkarawang.ac.id');
+                        return false;
+                    }
+                } else {
+                    if (emailDomain !== 'ubpkarawang.ac.id') {
+                        e.preventDefault();
+                        alert('Email dosen/staff harus menggunakan domain @ubpkarawang.ac.id');
+                        return false;
+                    }
+                }
+            }
+            
+            // Validasi password
             if (password !== confirmPassword) {
                 e.preventDefault();
                 alert('Password dan konfirmasi password tidak cocok!');
@@ -844,8 +928,6 @@ $dosen_staff_departments = [
                 alert('Password minimal 6 karakter!');
                 return false;
             }
-            
-            // Form akan di-submit dengan department yang sudah terisi
         });
 
         // Auto dismiss alerts
