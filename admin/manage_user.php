@@ -157,7 +157,48 @@ $status_filter = isset($_GET['status']) ? $_GET['status'] : 'all';
 $search = isset($_GET['search']) ? $_GET['search'] : '';
 $show_deleted = isset($_GET['show_deleted']) ? true : false;
 
-// Build query
+// Pagination setup
+$page = isset($_GET['page']) ? (int)$_GET['page'] : 1;
+$page = max(1, $page); // Ensure page is at least 1
+$items_per_page = 10;
+$offset = ($page - 1) * $items_per_page;
+
+// Build query for counting total records
+$count_sql = "SELECT COUNT(*) as total FROM users WHERE 1=1";
+$params_count = [];
+
+// Filter untuk menampilkan user yang dihapus atau tidak
+if ($show_deleted) {
+    $count_sql .= " AND deleted_at IS NOT NULL";
+} else {
+    $count_sql .= " AND deleted_at IS NULL";
+}
+
+if ($role_filter !== 'all') {
+    $count_sql .= " AND role = ?";
+    $params_count[] = $role_filter;
+}
+
+if ($status_filter !== 'all') {
+    $count_sql .= " AND status = ?";
+    $params_count[] = $status_filter;
+}
+
+if (!empty($search)) {
+    $count_sql .= " AND (nim_nip LIKE ? OR nama LIKE ? OR email LIKE ?)";
+    $search_param = "%$search%";
+    $params_count[] = $search_param;
+    $params_count[] = $search_param;
+    $params_count[] = $search_param;
+}
+
+// Get total records
+$stmt_count = $pdo->prepare($count_sql);
+$stmt_count->execute($params_count);
+$total_records = $stmt_count->fetch()['total'];
+$total_pages = ceil($total_records / $items_per_page);
+
+// Build query for fetching data with pagination
 $sql = "SELECT * FROM users WHERE 1=1";
 $params = [];
 
@@ -186,7 +227,10 @@ if (!empty($search)) {
     $params[] = $search_param;
 }
 
-$sql .= " ORDER BY created_at DESC";
+$sql .= " ORDER BY created_at DESC LIMIT ? OFFSET ?";
+$params[] = $items_per_page;
+$params[] = $offset;
+
 $stmt = $pdo->prepare($sql);
 $stmt->execute($params);
 $users = $stmt->fetchAll();
@@ -202,6 +246,13 @@ $stats_sql = "SELECT
               FROM users";
 $stmt = $pdo->query($stats_sql);
 $stats = $stmt->fetch();
+
+// Function to build pagination URL
+function build_pagination_url($page_num) {
+    $params = $_GET;
+    $params['page'] = $page_num;
+    return '?' . http_build_query($params);
+}
 
 $page_title = "Manajemen Pengguna";
 include_once '../includes/header.php';
@@ -476,6 +527,77 @@ include_once '../includes/navbar_admin.php';
                     </tbody>
                 </table>
             </div>
+
+            <!-- Pagination -->
+            <?php if ($total_pages > 1): ?>
+                <div class="d-flex justify-content-center mt-4">
+                    <nav aria-label="Page navigation">
+                        <ul class="pagination pagination-lg">
+                            <!-- Previous Button -->
+                            <li class="page-item <?= ($page <= 1) ? 'disabled' : '' ?>">
+                                <a class="page-link" href="<?= ($page > 1) ? build_pagination_url($page - 1) : '#' ?>" aria-label="Previous">
+                                    <span aria-hidden="true">&laquo;</span>
+                                </a>
+                            </li>
+
+                            <?php
+                            // Show page numbers with smart truncation
+                            $show_pages = 5; // Number of page links to show
+                            $start_page = max(1, $page - floor($show_pages / 2));
+                            $end_page = min($total_pages, $start_page + $show_pages - 1);
+                            
+                            // Adjust start if we're near the end
+                            if ($end_page - $start_page < $show_pages - 1) {
+                                $start_page = max(1, $end_page - $show_pages + 1);
+                            }
+
+                            // First page
+                            if ($start_page > 1):
+                            ?>
+                                <li class="page-item">
+                                    <a class="page-link" href="<?= build_pagination_url(1) ?>">1</a>
+                                </li>
+                                <?php if ($start_page > 2): ?>
+                                    <li class="page-item disabled"><span class="page-link">...</span></li>
+                                <?php endif; ?>
+                            <?php endif; ?>
+
+                            <!-- Page Numbers -->
+                            <?php for ($i = $start_page; $i <= $end_page; $i++): ?>
+                                <li class="page-item <?= ($i == $page) ? 'active' : '' ?>">
+                                    <a class="page-link" href="<?= build_pagination_url($i) ?>"><?= $i ?></a>
+                                </li>
+                            <?php endfor; ?>
+
+                            <!-- Last page -->
+                            <?php if ($end_page < $total_pages): ?>
+                                <?php if ($end_page < $total_pages - 1): ?>
+                                    <li class="page-item disabled"><span class="page-link">...</span></li>
+                                <?php endif; ?>
+                                <li class="page-item">
+                                    <a class="page-link" href="<?= build_pagination_url($total_pages) ?>"><?= $total_pages ?></a>
+                                </li>
+                            <?php endif; ?>
+
+                            <!-- Next Button -->
+                            <li class="page-item <?= ($page >= $total_pages) ? 'disabled' : '' ?>">
+                                <a class="page-link" href="<?= ($page < $total_pages) ? build_pagination_url($page + 1) : '#' ?>" aria-label="Next">
+                                    <span aria-hidden="true">&raquo;</span>
+                                </a>
+                            </li>
+                        </ul>
+                    </nav>
+                </div>
+
+                <!-- Pagination Info -->
+                <div class="text-center text-muted mt-2">
+                    <small>
+                        Menampilkan <?= min($offset + 1, $total_records) ?> - <?= min($offset + $items_per_page, $total_records) ?> 
+                        dari <?= $total_records ?> user
+                        (Halaman <?= $page ?> dari <?= $total_pages ?>)
+                    </small>
+                </div>
+            <?php endif; ?>
         </div>
     </div>
 </div>
