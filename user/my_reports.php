@@ -73,6 +73,9 @@ require_once '../includes/header.php';
 require_once '../includes/navbar_user.php';
 ?>
 
+<!-- Main Content Container with proper spacing -->
+<div class="container-fluid px-4 py-4">
+
 <?php if (isset($_SESSION['success_message'])): ?>
     <div class="alert alert-success alert-dismissible fade show">
         <i class="fas fa-check-circle me-2"></i>
@@ -320,5 +323,8 @@ require_once '../includes/navbar_user.php';
         <?php endif; ?>
     </div>
 </div>
+
+</div>
+<!-- End Main Content Container -->
 
 <?php require_once '../includes/footer.php'; ?>

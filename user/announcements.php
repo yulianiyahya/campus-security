@@ -88,6 +88,9 @@ require_once '../includes/header.php';
 require_once '../includes/navbar_user.php';
 ?>
 
+<!-- Main Content Container with proper spacing -->
+<div class="container-fluid px-4 py-4">
+
 <!-- Header -->
 <div class="row mb-4 align-items-center">
     <div class="col-md-8">
@@ -274,6 +277,9 @@ require_once '../includes/navbar_user.php';
         </nav>
     <?php endif; ?>
 <?php endif; ?>
+
+</div>
+<!-- End Main Content Container -->
 
 <!-- Announcement Detail Modal -->
 <div class="modal fade" id="announcementDetailModal" tabindex="-1" aria-hidden="true">

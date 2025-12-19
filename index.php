@@ -344,7 +344,7 @@ $announcements = $pdo->query($announcements_sql)->fetchAll();
             margin-top: 0.5rem;
         }
         
-        /* Features Section */
+        /* Features Section - UPDATED */
         .features-section {
             background: white;
             padding: 100px 0;
@@ -366,19 +366,25 @@ $announcements = $pdo->query($announcements_sql)->fetchAll();
             font-size: 1.15rem;
             color: var(--text-secondary);
             font-weight: 400;
+            margin-bottom: 3rem;
         }
         
+        /* Feature Card - IMPROVED SPACING */
         .feature-card {
             text-align: center;
-            padding: 2.5rem 2rem;
+            padding: 3rem 2.5rem;
             border-radius: 20px;
             background: var(--glass-blue);
             border: 1px solid rgba(108, 155, 207, 0.1);
-            margin: 15px 0;
+            margin: 20px 0;
             transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
             height: 100%;
+            min-height: 280px;
             position: relative;
             overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
         }
 
         .feature-card::before {
@@ -409,37 +415,53 @@ $announcements = $pdo->query($announcements_sql)->fetchAll();
         }
         
         .feature-icon {
-            font-size: 3rem;
-            margin-bottom: 1.5rem;
+            font-size: 3.5rem;
+            margin-bottom: 2rem;
             color: var(--primary-soft);
             transition: all 0.3s ease;
+            display: block;
         }
         
         .feature-card:hover .feature-icon {
             color: white;
-            transform: scale(1.1);
+            transform: scale(1.15) rotate(5deg);
         }
 
         .feature-card h4 {
             font-family: 'Clash Grotesk', serif;
             font-weight: 600;
-            font-size: 1.3rem;
+            font-size: 1.4rem;
             color: var(--text-primary);
-            margin-bottom: 1rem;
+            margin-bottom: 1.2rem;
             transition: color 0.3s ease;
+            line-height: 1.4;
         }
 
         .feature-card p {
             font-family: 'Satoshi', sans-serif;
             color: var(--text-secondary);
-            font-size: 0.95rem;
-            line-height: 1.7;
+            font-size: 1rem;
+            line-height: 1.8;
             transition: color 0.3s ease;
+            margin-bottom: 0;
         }
 
         .feature-card:hover h4,
         .feature-card:hover p {
             color: white;
+        }
+
+        /* Row spacing untuk feature cards */
+        .features-section .row {
+            margin-left: -15px;
+            margin-right: -15px;
+            row-gap: 30px;
+        }
+
+        .features-section .row > [class*='col-'] {
+            padding-left: 15px;
+            padding-right: 15px;
+            margin-bottom: 30px;
         }
         
         /* Announcement Card */
@@ -473,7 +495,7 @@ $announcements = $pdo->query($announcements_sql)->fetchAll();
             line-height: 1.7;
         }
 
-        /* CTA Section - Updated */
+        /* CTA Section */
         .cta-section {
             background: #7FA8C9;
             padding: 100px 0;
@@ -525,7 +547,7 @@ $announcements = $pdo->query($announcements_sql)->fetchAll();
             box-shadow: 0 12px 35px rgba(0,0,0,0.25);
         }
         
-        /* Footer - Updated */
+        /* Footer */
         .footer {
             background: #3e5364;
             color: white;
@@ -575,6 +597,18 @@ $announcements = $pdo->query($announcements_sql)->fetchAll();
         }
 
         /* Responsive */
+        @media (max-width: 992px) {
+            .feature-card {
+                min-height: 260px;
+                padding: 2.5rem 2rem;
+            }
+            
+            .feature-icon {
+                font-size: 3rem;
+                margin-bottom: 1.5rem;
+            }
+        }
+
         @media (max-width: 768px) {
             .hero-section {
                 padding: 80px 0 60px;
@@ -582,6 +616,16 @@ $announcements = $pdo->query($announcements_sql)->fetchAll();
 
             .features-section {
                 padding: 60px 0;
+            }
+
+            .feature-card {
+                min-height: auto;
+                padding: 2.5rem 2rem;
+                margin: 15px 0;
+            }
+            
+            .features-section .row > [class*='col-'] {
+                margin-bottom: 20px;
             }
 
             .stats-card {
@@ -594,6 +638,20 @@ $announcements = $pdo->query($announcements_sql)->fetchAll();
 
             .footer {
                 padding: 40px 0 20px;
+            }
+        }
+
+        @media (max-width: 576px) {
+            .feature-card {
+                padding: 2rem 1.5rem;
+            }
+            
+            .feature-card h4 {
+                font-size: 1.25rem;
+            }
+            
+            .feature-card p {
+                font-size: 0.95rem;
             }
         }
 

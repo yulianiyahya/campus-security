@@ -103,6 +103,9 @@ require_once '../includes/header.php';
 require_once '../includes/navbar_user.php';
 ?>
 
+<!-- Main Content Container with proper spacing -->
+<div class="container-fluid px-4 py-4">
+
 <!-- Welcome Banner -->
 <div class="card bg-gradient-primary text-white mb-4">
     <div class="card-body">
@@ -444,6 +447,9 @@ require_once '../includes/navbar_user.php';
         </div>
     </div>
 </div>
+
+</div>
+<!-- End Main Content Container -->
 
 <!-- Announcement Detail Modal -->
 <div class="modal fade" id="announcementDetailModal" tabindex="-1" aria-hidden="true">
