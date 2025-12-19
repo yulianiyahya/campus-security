@@ -13,22 +13,55 @@ if (is_logged_in()) {
     }
 }
 
-// Get public statistics
-$stats_sql = "SELECT 
-              COUNT(*) as total_reports,
-              COUNT(CASE WHEN status = 'resolved' THEN 1 END) as resolved_reports,
-              COUNT(DISTINCT reporter_id) as total_users
-              FROM reports";
-$stats = $pdo->query($stats_sql)->fetch();
+// Get public statistics with proper error handling
+try {
+    // Query untuk mendapatkan statistik
+    $stats_sql = "SELECT 
+                  (SELECT COUNT(*) FROM reports) as total_reports,
+                  (SELECT COUNT(*) FROM reports WHERE status = 'resolved') as resolved_reports,
+                  (SELECT COUNT(*) FROM reports WHERE status = 'closed') as closed_reports,
+                  (SELECT COUNT(DISTINCT reporter_id) FROM reports) as active_reporters,
+                  (SELECT COUNT(*) FROM users WHERE role = 'user' AND status = 'active') as total_users
+                  ";
+    
+    $stmt = $pdo->query($stats_sql);
+    $stats = $stmt->fetch(PDO::FETCH_ASSOC);
+    
+    // Hitung total laporan selesai (resolved + closed)
+    $stats['completed_reports'] = $stats['resolved_reports'] + $stats['closed_reports'];
+    
+    // Gunakan active_reporters sebagai pengguna aktif (yang pernah membuat laporan)
+    // Atau bisa juga menggunakan total_users jika ingin menampilkan semua user terdaftar
+    $stats['active_users'] = $stats['active_reporters']; // User yang pernah membuat laporan
+    
+} catch (PDOException $e) {
+    // Jika terjadi error, set default values
+    $stats = [
+        'total_reports' => 0,
+        'completed_reports' => 0,
+        'active_users' => 0
+    ];
+    error_log("Error fetching stats: " . $e->getMessage());
+}
 
 // Get recent announcements (public)
-$announcements_sql = "SELECT * FROM announcements 
-                      WHERE is_published = TRUE 
-                      AND publish_date <= NOW()
-                      AND (expire_date IS NULL OR expire_date > NOW())
-                      ORDER BY priority DESC, created_at DESC
-                      LIMIT 3";
-$announcements = $pdo->query($announcements_sql)->fetchAll();
+try {
+    $announcements_sql = "SELECT * FROM announcements 
+                          WHERE is_published = TRUE 
+                          AND publish_date <= NOW()
+                          AND (expire_date IS NULL OR expire_date > NOW())
+                          ORDER BY priority DESC, created_at DESC
+                          LIMIT 3";
+    $announcements = $pdo->query($announcements_sql)->fetchAll(PDO::FETCH_ASSOC);
+} catch (PDOException $e) {
+    $announcements = [];
+    error_log("Error fetching announcements: " . $e->getMessage());
+}
+
+// Fungsi helper untuk format angka
+function formatNumber($number) {
+    return number_format($number, 0, ',', '.');
+}
 ?>
 <!DOCTYPE html>
 <html lang="id">
@@ -49,8 +82,8 @@ $announcements = $pdo->query($announcements_sql)->fetchAll();
     <link href="https://fonts.googleapis.com/css2?family=Geist+Mono:wght@300;400;500;600&display=swap" rel="stylesheet">
     
     <style>
+        /* [CSS YANG SAMA SEPERTI SEBELUMNYA - TIDAK PERLU DIUBAH] */
         :root {
-            /* Soft Blue Palette */
             --primary-soft: #6C9BCF;
             --primary-light: #8BB4DB;
             --primary-lighter: #B8D4EC;
@@ -58,24 +91,16 @@ $announcements = $pdo->query($announcements_sql)->fetchAll();
             --accent-gold: #D4AF37;
             --accent-rose: #E8B4B8;
             --accent-mint: #B8E8D4;
-            
-            /* Premium Gradients */
             --luxury-gradient: linear-gradient(135deg, #6C9BCF 0%, #8BB4DB 50%, #B8D4EC 100%);
             --gold-gradient: linear-gradient(135deg, #D4AF37 0%, #F4E5A8 100%);
             --mint-gradient: linear-gradient(135deg, #B8E8D4 0%, #D4F5E8 100%);
             --elegant-gradient: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
-            
-            /* Backgrounds */
             --body-bg: #f5f9ff;
             --card-bg: #ffffff;
-            
-            /* Text Colors */
             --text-primary: #2c3e50;
             --text-secondary: #5a6c7d;
             --text-light: #95a5a6;
             --text-elegant: #34495e;
-            
-            /* Glass & Shadow */
             --glass-white: rgba(255, 255, 255, 0.95);
             --glass-blue: rgba(108, 155, 207, 0.08);
             --shadow-elegant: 0 10px 40px rgba(108, 155, 207, 0.12);
@@ -96,7 +121,39 @@ $announcements = $pdo->query($announcements_sql)->fetchAll();
             line-height: 1.6;
         }
 
-        /* Elegant Floating Orbs Background */
+        /* Animasi counter untuk angka statistik */
+        @keyframes countUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .stats-number {
+            font-family: 'Geist Mono', monospace;
+            font-size: 2.8rem;
+            font-weight: 700;
+            color: var(--primary-soft);
+            letter-spacing: -1px;
+            animation: countUp 0.8s ease-out;
+        }
+
+        /* Tambahan style untuk loading state */
+        .stats-card.loading .stats-number::after {
+            content: '...';
+            animation: dots 1.5s infinite;
+        }
+
+        @keyframes dots {
+            0%, 20% { content: '.'; }
+            40% { content: '..'; }
+            60%, 100% { content: '...'; }
+        }
+
         body::before,
         body::after {
             content: '';
@@ -324,14 +381,6 @@ $announcements = $pdo->query($announcements_sql)->fetchAll();
             font-size: 2.8rem;
             margin-bottom: 1.2rem;
             opacity: 0.9;
-        }
-        
-        .stats-number {
-            font-family: 'Geist Mono', monospace;
-            font-size: 2.8rem;
-            font-weight: 700;
-            color: var(--primary-soft);
-            letter-spacing: -1px;
         }
         
         .stats-label {
@@ -726,26 +775,32 @@ $announcements = $pdo->query($announcements_sql)->fetchAll();
                 </div>
             </div>
 
-            <!-- Statistics Cards -->
+            <!-- Statistics Cards - BAGIAN YANG SUDAH DINAMIS -->
             <div class="row mt-5 pt-4">
                 <div class="col-md-4">
                     <div class="stats-card">
                         <i class="fas fa-file-alt stats-icon text-primary"></i>
-                        <div class="stats-number"><?= number_format($stats['total_reports']) ?></div>
+                        <div class="stats-number" data-target="<?= $stats['total_reports'] ?>">
+                            <?= formatNumber($stats['total_reports']) ?>
+                        </div>
                         <div class="stats-label">Total Laporan</div>
                     </div>
                 </div>
                 <div class="col-md-4">
                     <div class="stats-card">
                         <i class="fas fa-check-circle stats-icon text-success"></i>
-                        <div class="stats-number"><?= number_format($stats['resolved_reports']) ?></div>
+                        <div class="stats-number" data-target="<?= $stats['completed_reports'] ?>">
+                            <?= formatNumber($stats['completed_reports']) ?>
+                        </div>
                         <div class="stats-label">Laporan Selesai</div>
                     </div>
                 </div>
                 <div class="col-md-4">
                     <div class="stats-card">
                         <i class="fas fa-users stats-icon text-info"></i>
-                        <div class="stats-number"><?= number_format($stats['total_users']) ?></div>
+                        <div class="stats-number" data-target="<?= $stats['active_users'] ?>">
+                            <?= formatNumber($stats['active_users']) ?>
+                        </div>
                         <div class="stats-label">Pengguna Aktif</div>
                     </div>
                 </div>
@@ -905,7 +960,7 @@ $announcements = $pdo->query($announcements_sql)->fetchAll();
     <!-- Bootstrap JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     
-    <!-- Smooth Scroll -->
+    <!-- Smooth Scroll & Counter Animation -->
     <script>
         document.addEventListener('DOMContentLoaded', function() {
             // Smooth scroll
@@ -925,6 +980,47 @@ $announcements = $pdo->query($announcements_sql)->fetchAll();
                     }
                 });
             });
+
+            // Animated counter untuk statistik
+            const animateCounter = (element) => {
+                const target = parseInt(element.getAttribute('data-target'));
+                const duration = 2000; // 2 detik
+                const increment = target / (duration / 16); // 60 FPS
+                let current = 0;
+
+                const updateCounter = () => {
+                    current += increment;
+                    if (current < target) {
+                        element.textContent = Math.floor(current).toLocaleString('id-ID');
+                        requestAnimationFrame(updateCounter);
+                    } else {
+                        element.textContent = target.toLocaleString('id-ID');
+                    }
+                };
+
+                updateCounter();
+            };
+
+            // Intersection Observer untuk trigger animasi saat scroll
+            const observer = new IntersectionObserver((entries) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        const statsNumbers = entry.target.querySelectorAll('.stats-number');
+                        statsNumbers.forEach(num => {
+                            if (!num.classList.contains('animated')) {
+                                num.classList.add('animated');
+                                animateCounter(num);
+                            }
+                        });
+                    }
+                });
+            }, { threshold: 0.5 });
+
+            // Observe stats section
+            const statsSection = document.querySelector('.hero-section');
+            if (statsSection) {
+                observer.observe(statsSection);
+            }
         });
     </script>
 </body>
