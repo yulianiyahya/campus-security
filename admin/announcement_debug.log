@@ -1,0 +1,349 @@
+
+
+2025-12-19 22:19:16 - Page Loaded
+User ID: 1
+Request Method: GET
+POST Data: Array
+(
+)
+
+Total announcements found: 1
+
+
+2025-12-19 22:26:12 - Page Loaded
+User ID: 1
+Request Method: GET
+POST Data: Array
+(
+)
+
+Total announcements found: 6
+
+
+2025-12-19 22:41:34 - Page Loaded
+User ID: 1
+Request Method: GET
+POST Data: Array
+(
+)
+
+Total announcements found: 6
+
+
+2025-12-19 22:41:41 - Page Loaded
+User ID: 1
+Request Method: GET
+POST Data: Array
+(
+)
+
+Total announcements found: 6
+
+
+2025-12-19 22:41:45 - Page Loaded
+User ID: 1
+Request Method: GET
+POST Data: Array
+(
+)
+
+Total announcements found: 6
+
+
+2025-12-19 22:41:51 - Page Loaded
+User ID: 1
+Request Method: GET
+POST Data: Array
+(
+)
+
+DELETE ANNOUNCEMENT TRIGGERED
+
+
+2025-12-19 22:41:51 - Page Loaded
+User ID: 1
+Request Method: GET
+POST Data: Array
+(
+)
+
+Total announcements found: 5
+
+
+2025-12-20 13:35:03 - Page Loaded
+User ID: 1
+Request Method: GET
+POST Data: Array
+(
+)
+
+Total announcements found: 5
+
+
+2025-12-20 14:08:45 - Page Loaded
+User ID: 1
+Request Method: GET
+POST Data: Array
+(
+)
+
+Total announcements found: 5
+
+
+2025-12-20 14:11:26 - Page Loaded
+User ID: 1
+Request Method: GET
+POST Data: Array
+(
+)
+
+Total announcements found: 5
+
+
+2025-12-20 14:12:55 - Page Loaded
+User ID: 1
+Request Method: POST
+POST Data: Array
+(
+    [title] => Dompet hilang arah
+    [content] => Si dompet sedang mencari tuannya
+    [type] => info
+    [priority] => high
+    [publish_date] => 2025-12-20T14:11
+    [expire_date] => 2025-12-31T14:12
+    [is_published] => 1
+)
+
+
+=== CREATE ANNOUNCEMENT TRIGGERED ===
+Title: Dompet hilang arah
+Content: Si dompet sedang mencari tuannya
+Image uploaded: uploads/announcements/announcement_1766214775_69464c77ab601.png
+SQL Prepared
+Parameters bound
+Execute result: TRUE
+Last Insert ID: 12
+SUCCESS - Announcement ID: 12
+
+
+2025-12-20 14:12:55 - Page Loaded
+User ID: 1
+Request Method: GET
+POST Data: Array
+(
+)
+
+Total announcements found: 6
+
+
+2025-12-20 19:04:39 - Page Loaded
+User ID: 1
+Request Method: GET
+POST Data: Array
+(
+)
+
+Total announcements found: 6
+
+
+2025-12-20 19:05:19 - Page Loaded
+User ID: 1
+Request Method: POST
+POST Data: Array
+(
+    [title] => Kehilangan mouse
+    [content] => telah ditemukan sebuah mouse yang berada di gedung B
+    [type] => info
+    [priority] => normal
+    [publish_date] => 2025-12-20T19:04
+    [expire_date] => 2025-12-31T19:05
+    [is_published] => 1
+)
+
+
+=== CREATE ANNOUNCEMENT TRIGGERED ===
+Title: Kehilangan mouse
+Content: telah ditemukan sebuah mouse yang berada di gedung B
+Image uploaded: uploads/announcements/announcement_1766232319_694690ff65652.png
+SQL Prepared
+Parameters bound
+Execute result: TRUE
+Last Insert ID: 13
+SUCCESS - Announcement ID: 13
+
+
+2025-12-20 19:05:19 - Page Loaded
+User ID: 1
+Request Method: GET
+POST Data: Array
+(
+)
+
+Total announcements found: 7
+
+
+2025-12-20 20:27:19 - Page Loaded
+User ID: 1
+Request Method: GET
+POST Data: Array
+(
+)
+
+Total announcements found: 7
+
+
+2025-12-20 20:28:23 - Page Loaded
+User ID: 1
+Request Method: GET
+POST Data: Array
+(
+)
+
+Total announcements found: 7
+
+
+2025-12-20 20:32:09 - Page Loaded
+User ID: 1
+Request Method: GET
+POST Data: Array
+(
+)
+
+Total announcements found: 7
+
+
+2025-12-20 20:32:46 - Page Loaded
+User ID: 1
+Request Method: POST
+POST Data: Array
+(
+    [title] => wwww
+    [content] => test
+    [type] => general
+    [priority] => normal
+    [publish_date] => 2025-12-20T20:32
+    [expire_date] => 2025-12-21T20:32
+    [is_published] => 1
+)
+
+
+=== CREATE ANNOUNCEMENT TRIGGERED ===
+Title: wwww
+Content: test
+Image uploaded: uploads/announcements/announcement_1766237566_6946a57e9a9c5.jpg
+SQL Prepared
+Parameters bound
+Execute result: TRUE
+Last Insert ID: 14
+SUCCESS - Announcement ID: 14
+
+
+2025-12-20 20:32:46 - Page Loaded
+User ID: 1
+Request Method: GET
+POST Data: Array
+(
+)
+
+Total announcements found: 8
+
+
+2025-12-20 20:35:03 - Page Loaded
+User ID: 1
+Request Method: GET
+POST Data: Array
+(
+)
+
+Total announcements found: 8
+
+
+2025-12-20 20:47:04 - Page Loaded
+User ID: 1
+Request Method: GET
+POST Data: Array
+(
+)
+
+Total announcements found: 8
+
+
+2025-12-20 20:47:07 - Page Loaded
+User ID: 1
+Request Method: GET
+POST Data: Array
+(
+)
+
+Total announcements found: 0
+
+
+2025-12-20 20:47:09 - Page Loaded
+User ID: 1
+Request Method: GET
+POST Data: Array
+(
+)
+
+Total announcements found: 8
+
+
+2025-12-20 20:47:38 - Page Loaded
+User ID: 1
+Request Method: GET
+POST Data: Array
+(
+)
+
+SOFT DELETE ANNOUNCEMENT TRIGGERED
+SUCCESS - Soft deleted announcement ID: 13
+
+
+2025-12-20 20:47:38 - Page Loaded
+User ID: 1
+Request Method: GET
+POST Data: Array
+(
+)
+
+Total announcements found: 7
+
+
+2025-12-20 20:47:41 - Page Loaded
+User ID: 1
+Request Method: GET
+POST Data: Array
+(
+)
+
+Total announcements found: 7
+
+
+2025-12-20 20:47:42 - Page Loaded
+User ID: 1
+Request Method: GET
+POST Data: Array
+(
+)
+
+Total announcements found: 1
+
+
+2025-12-20 21:20:24 - Page Loaded
+User ID: 1
+Request Method: GET
+POST Data: Array
+(
+)
+
+Total announcements found: 7
+
+
+2025-12-20 21:20:49 - Page Loaded
+User ID: 1
+Request Method: GET
+POST Data: Array
+(
+)
+
+Total announcements found: 7

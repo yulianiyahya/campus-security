@@ -69,9 +69,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !isset($_POST['update_announcement'
             exit;
         }
         
-        // Validate file size (max 5MB)
-        if ($file_size > 5 * 1024 * 1024) {
-            $_SESSION['flash_message'] = 'Ukuran file terlalu besar! Maksimal 5MB.';
+        // Validate file size (max 20MB)
+        if ($file_size > 20 * 1024 * 1024) {
+            $_SESSION['flash_message'] = 'Ukuran file terlalu besar! Maksimal 20MB.';
             $_SESSION['flash_type'] = 'danger';
             header('Location: announcements.php');
             exit;
@@ -169,7 +169,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_announcement']
         $file_ext = strtolower(pathinfo($file_name, PATHINFO_EXTENSION));
         
         $allowed_ext = ['jpg', 'jpeg', 'png', 'gif', 'webp'];
-        if (in_array($file_ext, $allowed_ext) && $file_size <= 5 * 1024 * 1024) {
+        if (in_array($file_ext, $allowed_ext) && $file_size <= 20 * 1024 * 1024) {
             // Delete old image if exists
             if ($image_path && file_exists('../' . $image_path)) {
                 unlink('../' . $image_path);
@@ -227,34 +227,26 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_announcement']
     exit;
 }
 
-// Handle Delete Announcement
+// ✅ SOFT DELETE - Handle Delete Announcement
 if (isset($_GET['delete'])) {
-    file_put_contents($debug_log, "DELETE ANNOUNCEMENT TRIGGERED\n", FILE_APPEND);
+    file_put_contents($debug_log, "SOFT DELETE ANNOUNCEMENT TRIGGERED\n", FILE_APPEND);
     $id = (int)$_GET['delete'];
     
     try {
-        // Get image path before delete
-        $stmt = $pdo->prepare("SELECT image_path FROM announcements WHERE id = :id");
-        $stmt->bindParam(':id', $id, PDO::PARAM_INT);
-        $stmt->execute();
-        $announcement = $stmt->fetch();
-        
-        // Delete the announcement
-        $sql = "DELETE FROM announcements WHERE id = :id";
+        // ✅ Soft delete: Set deleted_at timestamp instead of actually deleting
+        $sql = "UPDATE announcements SET deleted_at = NOW(), deleted_by = :deleted_by WHERE id = :id";
         $stmt = $pdo->prepare($sql);
         $stmt->bindParam(':id', $id, PDO::PARAM_INT);
+        $stmt->bindParam(':deleted_by', $user_id, PDO::PARAM_INT);
         
         if ($stmt->execute()) {
-            // Delete image file if exists
-            if ($announcement && $announcement['image_path'] && file_exists('../' . $announcement['image_path'])) {
-                unlink('../' . $announcement['image_path']);
-            }
-            
             $_SESSION['flash_message'] = 'Pengumuman berhasil dihapus!';
             $_SESSION['flash_type'] = 'success';
+            file_put_contents($debug_log, "SUCCESS - Soft deleted announcement ID: $id\n", FILE_APPEND);
         } else {
             $_SESSION['flash_message'] = 'Gagal menghapus pengumuman!';
             $_SESSION['flash_type'] = 'danger';
+            file_put_contents($debug_log, "FAILED - Soft delete failed\n", FILE_APPEND);
         }
     } catch (PDOException $e) {
         $_SESSION['flash_message'] = 'Error: ' . $e->getMessage();
@@ -266,12 +258,94 @@ if (isset($_GET['delete'])) {
     exit;
 }
 
-// Get all announcements
+// ✅ Handle Restore Announcement
+if (isset($_GET['restore'])) {
+    file_put_contents($debug_log, "RESTORE ANNOUNCEMENT TRIGGERED\n", FILE_APPEND);
+    $id = (int)$_GET['restore'];
+    
+    try {
+        $sql = "UPDATE announcements SET deleted_at = NULL, deleted_by = NULL WHERE id = :id";
+        $stmt = $pdo->prepare($sql);
+        $stmt->bindParam(':id', $id, PDO::PARAM_INT);
+        
+        if ($stmt->execute()) {
+            $_SESSION['flash_message'] = 'Pengumuman berhasil dipulihkan!';
+            $_SESSION['flash_type'] = 'success';
+            file_put_contents($debug_log, "SUCCESS - Restored announcement ID: $id\n", FILE_APPEND);
+        } else {
+            $_SESSION['flash_message'] = 'Gagal memulihkan pengumuman!';
+            $_SESSION['flash_type'] = 'danger';
+        }
+    } catch (PDOException $e) {
+        $_SESSION['flash_message'] = 'Error: ' . $e->getMessage();
+        $_SESSION['flash_type'] = 'danger';
+        file_put_contents($debug_log, "RESTORE ERROR: " . $e->getMessage() . "\n", FILE_APPEND);
+    }
+    
+    header('Location: announcements.php');
+    exit;
+}
+
+// ✅ Handle Permanent Delete (Hard Delete)
+if (isset($_GET['permanent_delete'])) {
+    file_put_contents($debug_log, "PERMANENT DELETE ANNOUNCEMENT TRIGGERED\n", FILE_APPEND);
+    $id = (int)$_GET['permanent_delete'];
+    
+    try {
+        // Get image path before delete
+        $stmt = $pdo->prepare("SELECT image_path FROM announcements WHERE id = :id");
+        $stmt->bindParam(':id', $id, PDO::PARAM_INT);
+        $stmt->execute();
+        $announcement = $stmt->fetch();
+        
+        // Delete the announcement permanently
+        $sql = "DELETE FROM announcements WHERE id = :id";
+        $stmt = $pdo->prepare($sql);
+        $stmt->bindParam(':id', $id, PDO::PARAM_INT);
+        
+        if ($stmt->execute()) {
+            // Delete image file if exists
+            if ($announcement && $announcement['image_path'] && file_exists('../' . $announcement['image_path'])) {
+                unlink('../' . $announcement['image_path']);
+            }
+            
+            $_SESSION['flash_message'] = 'Pengumuman berhasil dihapus permanen!';
+            $_SESSION['flash_type'] = 'success';
+            file_put_contents($debug_log, "SUCCESS - Permanently deleted announcement ID: $id\n", FILE_APPEND);
+        } else {
+            $_SESSION['flash_message'] = 'Gagal menghapus pengumuman permanen!';
+            $_SESSION['flash_type'] = 'danger';
+        }
+    } catch (PDOException $e) {
+        $_SESSION['flash_message'] = 'Error: ' . $e->getMessage();
+        $_SESSION['flash_type'] = 'danger';
+        file_put_contents($debug_log, "PERMANENT DELETE ERROR: " . $e->getMessage() . "\n", FILE_APPEND);
+    }
+    
+    header('Location: announcements.php');
+    exit;
+}
+
+// ✅ Get all announcements (exclude soft deleted)
+$show_deleted = isset($_GET['show_deleted']) ? true : false;
+
 try {
-    $sql = "SELECT a.*, u.nama as author_name
-            FROM announcements a
-            JOIN users u ON a.created_by = u.id
-            ORDER BY a.created_at DESC";
+    if ($show_deleted) {
+        // Show only deleted announcements
+        $sql = "SELECT a.*, u.nama as author_name, ud.nama as deleter_name
+                FROM announcements a
+                JOIN users u ON a.created_by = u.id
+                LEFT JOIN users ud ON a.deleted_by = ud.id
+                WHERE a.deleted_at IS NOT NULL
+                ORDER BY a.deleted_at DESC";
+    } else {
+        // Show only active announcements
+        $sql = "SELECT a.*, u.nama as author_name
+                FROM announcements a
+                JOIN users u ON a.created_by = u.id
+                WHERE a.deleted_at IS NULL
+                ORDER BY a.created_at DESC";
+    }
     $announcements = $pdo->query($sql)->fetchAll();
     file_put_contents($debug_log, "Total announcements found: " . count($announcements) . "\n", FILE_APPEND);
 } catch (PDOException $e) {
@@ -281,12 +355,12 @@ try {
     file_put_contents($debug_log, "FETCH ERROR: " . $e->getMessage() . "\n", FILE_APPEND);
 }
 
-// Get announcement for edit
+// Get announcement for edit (only if not deleted)
 $edit_announcement = null;
 if (isset($_GET['edit'])) {
     $id = (int)$_GET['edit'];
     try {
-        $stmt = $pdo->prepare("SELECT * FROM announcements WHERE id = :id");
+        $stmt = $pdo->prepare("SELECT * FROM announcements WHERE id = :id AND deleted_at IS NULL");
         $stmt->bindParam(':id', $id, PDO::PARAM_INT);
         $stmt->execute();
         $edit_announcement = $stmt->fetch();
@@ -321,23 +395,37 @@ require_once '../includes/navbar_admin.php';
             <div class="card shadow-sm mb-4">
                 <div class="card-header d-flex justify-content-between align-items-center">
                     <h5 class="mb-0">
-                        <i class="fas fa-bullhorn me-2"></i>Kelola Pengumuman
+                        <i class="fas fa-bullhorn me-2"></i>
+                        <?= $show_deleted ? 'Pengumuman Terhapus' : 'Kelola Pengumuman' ?>
                     </h5>
-                    <button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#createAnnouncementModal">
-                        <i class="fas fa-plus me-1"></i>Buat Pengumuman
-                    </button>
+                    <div>
+                        <?php if ($show_deleted): ?>
+                            <a href="announcements.php" class="btn btn-secondary btn-sm me-2">
+                                <i class="fas fa-arrow-left me-1"></i>Kembali
+                            </a>
+                        <?php else: ?>
+                            <a href="?show_deleted=1" class="btn btn-secondary btn-sm me-2">
+                                <i class="fas fa-trash me-1"></i>Lihat Terhapus
+                            </a>
+                            <button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#createAnnouncementModal">
+                                <i class="fas fa-plus me-1"></i>Buat Pengumuman
+                            </button>
+                        <?php endif; ?>
+                    </div>
                 </div>
                 <div class="card-body">
                     <?php if (empty($announcements)): ?>
                         <div class="text-center text-muted py-5">
                             <i class="fas fa-bullhorn fa-3x mb-3 opacity-50"></i>
-                            <p>Belum ada pengumuman. Klik "Buat Pengumuman" untuk membuat yang pertama.</p>
+                            <p>
+                                <?= $show_deleted ? 'Tidak ada pengumuman yang terhapus.' : 'Belum ada pengumuman. Klik "Buat Pengumuman" untuk membuat yang pertama.' ?>
+                            </p>
                         </div>
                     <?php else: ?>
                         <div class="row">
                             <?php foreach ($announcements as $announcement): ?>
                                 <div class="col-md-12 mb-3">
-                                    <div class="card border-start border-5 <?= ($announcement['priority'] === 'high' || $announcement['priority'] === 'urgent') ? 'border-danger' : 'border-primary' ?>">
+                                    <div class="card border-start border-5 <?= ($announcement['priority'] === 'high' || $announcement['priority'] === 'urgent') ? 'border-danger' : ($show_deleted ? 'border-secondary' : 'border-primary') ?>">
                                         <div class="card-body">
                                             <div class="d-flex justify-content-between align-items-start mb-2">
                                                 <div class="flex-grow-1">
@@ -356,20 +444,34 @@ require_once '../includes/navbar_admin.php';
                                                     <small class="text-muted">
                                                         <i class="fas fa-user me-1"></i><?= htmlspecialchars($announcement['author_name']) ?>
                                                         <i class="fas fa-clock ms-2 me-1"></i><?= date('d M Y H:i', strtotime($announcement['created_at'])) ?>
+                                                        <?php if ($show_deleted && !empty($announcement['deleted_at'])): ?>
+                                                            <span class="text-danger ms-2">
+                                                                <i class="fas fa-trash me-1"></i>Dihapus: <?= date('d M Y H:i', strtotime($announcement['deleted_at'])) ?>
+                                                                <?php if (!empty($announcement['deleter_name'])): ?>
+                                                                    oleh <?= htmlspecialchars($announcement['deleter_name']) ?>
+                                                                <?php endif; ?>
+                                                            </span>
+                                                        <?php endif; ?>
                                                     </small>
                                                 </div>
                                                 <div>
-                                                    <?php if ($announcement['is_published']): ?>
-                                                        <span class="badge bg-success me-1">
-                                                            <i class="fas fa-check"></i> Published
-                                                        </span>
+                                                    <?php if (!$show_deleted): ?>
+                                                        <?php if ($announcement['is_published']): ?>
+                                                            <span class="badge bg-success me-1">
+                                                                <i class="fas fa-check"></i> Published
+                                                            </span>
+                                                        <?php else: ?>
+                                                            <span class="badge bg-secondary me-1">Draft</span>
+                                                        <?php endif; ?>
+                                                        
+                                                        <?php if ($announcement['priority'] === 'high' || $announcement['priority'] === 'urgent'): ?>
+                                                            <span class="badge bg-danger">
+                                                                <i class="fas fa-star"></i> Prioritas <?= ucfirst($announcement['priority']) ?>
+                                                            </span>
+                                                        <?php endif; ?>
                                                     <?php else: ?>
-                                                        <span class="badge bg-secondary me-1">Draft</span>
-                                                    <?php endif; ?>
-                                                    
-                                                    <?php if ($announcement['priority'] === 'high' || $announcement['priority'] === 'urgent'): ?>
-                                                        <span class="badge bg-danger">
-                                                            <i class="fas fa-star"></i> Prioritas <?= ucfirst($announcement['priority']) ?>
+                                                        <span class="badge bg-secondary">
+                                                            <i class="fas fa-trash"></i> Deleted
                                                         </span>
                                                     <?php endif; ?>
                                                 </div>
@@ -397,15 +499,28 @@ require_once '../includes/navbar_admin.php';
                                                     </small>
                                                 </div>
                                                 <div>
-                                                    <a href="?edit=<?= $announcement['id'] ?>" 
-                                                       class="btn btn-sm btn-warning">
-                                                        <i class="fas fa-edit"></i> Edit
-                                                    </a>
-                                                    <a href="?delete=<?= $announcement['id'] ?>" 
-                                                       class="btn btn-sm btn-danger"
-                                                       onclick="return confirm('Yakin ingin menghapus pengumuman ini?')">
-                                                        <i class="fas fa-trash"></i> Hapus
-                                                    </a>
+                                                    <?php if ($show_deleted): ?>
+                                                        <a href="?restore=<?= $announcement['id'] ?>" 
+                                                           class="btn btn-sm btn-success"
+                                                           onclick="return confirm('Yakin ingin memulihkan pengumuman ini?')">
+                                                            <i class="fas fa-undo"></i> Pulihkan
+                                                        </a>
+                                                        <a href="?permanent_delete=<?= $announcement['id'] ?>" 
+                                                           class="btn btn-sm btn-danger"
+                                                           onclick="return confirm('PERINGATAN: Pengumuman akan dihapus PERMANEN dan tidak dapat dipulihkan! Yakin ingin melanjutkan?')">
+                                                            <i class="fas fa-trash-alt"></i> Hapus Permanen
+                                                        </a>
+                                                    <?php else: ?>
+                                                        <a href="?edit=<?= $announcement['id'] ?>" 
+                                                           class="btn btn-sm btn-warning">
+                                                            <i class="fas fa-edit"></i> Edit
+                                                        </a>
+                                                        <a href="?delete=<?= $announcement['id'] ?>" 
+                                                           class="btn btn-sm btn-danger"
+                                                           onclick="return confirm('Yakin ingin menghapus pengumuman ini?')">
+                                                            <i class="fas fa-trash"></i> Hapus
+                                                        </a>
+                                                    <?php endif; ?>
                                                 </div>
                                             </div>
                                         </div>
@@ -441,7 +556,7 @@ require_once '../includes/navbar_admin.php';
                     <div class="mb-3">
                         <label class="form-label">Gambar Pengumuman (Opsional)</label>
                         <input type="file" class="form-control" name="announcement_image" accept="image/*" id="createImageInput">
-                        <small class="text-muted">Format: JPG, PNG, GIF, WEBP. Maksimal 5MB</small>
+                        <small class="text-muted">Format: JPG, PNG, GIF, WEBP. Maksimal 20MB</small>
                         <div id="createImagePreview" class="mt-2"></div>
                     </div>
                     <div class="row">
@@ -532,7 +647,7 @@ require_once '../includes/navbar_admin.php';
                             </div>
                         <?php endif; ?>
                         <input type="file" class="form-control" name="announcement_image" accept="image/*" id="editImageInput">
-                        <small class="text-muted">Format: JPG, PNG, GIF, WEBP. Maksimal 5MB. Kosongkan jika tidak ingin mengubah.</small>
+                        <small class="text-muted">Format: JPG, PNG, GIF, WEBP. Maksimal 20MB. Kosongkan jika tidak ingin mengubah.</small>
                         <div id="editImagePreview" class="mt-2"></div>
                     </div>
                     <div class="row">
@@ -596,15 +711,13 @@ document.getElementById('createImageInput')?.addEventListener('change', function
     const preview = document.getElementById('createImagePreview');
     
     if (file) {
-        // Validate file size (5MB)
-        if (file.size > 5 * 1024 * 1024) {
-            alert('Ukuran file terlalu besar! Maksimal 5MB.');
+        if (file.size > 20 * 1024 * 1024) {
+            alert('Ukuran file terlalu besar! Maksimal 20MB.');
             this.value = '';
             preview.innerHTML = '';
             return;
         }
         
-        // Validate file type
         const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
         if (!allowedTypes.includes(file.type)) {
             alert('Format file tidak didukung! Gunakan JPG, PNG, GIF, atau WEBP.');
@@ -637,15 +750,13 @@ document.getElementById('editImageInput')?.addEventListener('change', function(e
     const preview = document.getElementById('editImagePreview');
     
     if (file) {
-        // Validate file size (5MB)
-        if (file.size > 5 * 1024 * 1024) {
-            alert('Ukuran file terlalu besar! Maksimal 5MB.');
+        if (file.size > 20 * 1024 * 1024) {
+            alert('Ukuran file terlalu besar! Maksimal 20MB.');
             this.value = '';
             preview.innerHTML = '';
             return;
         }
         
-        // Validate file type
         const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
         if (!allowedTypes.includes(file.type)) {
             alert('Format file tidak didukung! Gunakan JPG, PNG, GIF, atau WEBP.');
@@ -681,4 +792,4 @@ function removeCurrentImage() {
 }
 </script>
 
-<?php require_once '../includes/footer.php'; ?>
+<?php require_once '../includes/footer.php'; ?>    

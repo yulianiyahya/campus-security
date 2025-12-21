@@ -672,10 +672,14 @@ $dosen_staff_departments = [
                 
                 <div class="form-floating">
                     <input type="tel" class="form-control" id="no_hp" name="no_hp" 
-                           placeholder="No. HP" value="<?php echo htmlspecialchars($_POST['no_hp'] ?? ''); ?>">
+                        placeholder="No. HP" value="<?php echo htmlspecialchars($_POST['no_hp'] ?? ''); ?>"
+                        maxlength="18">
                     <label for="no_hp">
                         <i class="fas fa-phone me-2"></i>No. HP (Opsional)
                     </label>
+                    <div class="email-hint">
+                        Format: +62 812-3456-7890
+                    </div>
                 </div>
 
                 <!-- Department untuk Mahasiswa -->
@@ -940,6 +944,102 @@ $dosen_staff_departments = [
                 }, 5000);
             });
         });
+
+        // Phone Number Formatter dengan prefix +62
+document.getElementById('no_hp').addEventListener('input', function(e) {
+    let value = e.target.value;
+    
+    // Hapus semua karakter non-digit kecuali +
+    value = value.replace(/[^\d+]/g, '');
+    
+    // Jika user menghapus semua, biarkan kosong
+    if (value === '' || value === '+') {
+        e.target.value = '';
+        return;
+    }
+    
+    // Jika dimulai dengan 0, ganti dengan +62
+    if (value.startsWith('0')) {
+        value = '+62' + value.substring(1);
+    }
+    
+    // Jika dimulai dengan 62, tambahkan +
+    if (value.startsWith('62') && !value.startsWith('+62')) {
+        value = '+' + value;
+    }
+    
+    // Jika tidak dimulai dengan +62, tambahkan +62
+    if (!value.startsWith('+62')) {
+        value = '+62' + value.replace(/^\+/, '');
+    }
+    
+    // Hapus +62 duplikat
+    value = value.replace(/(\+62)+/g, '+62');
+    
+    // Batasi panjang (maksimal +62 + 12 digit)
+    if (value.length > 15) {
+        value = value.substring(0, 15);
+    }
+    
+    // Format dengan dash untuk tampilan yang lebih rapi
+    // Format: +62 812-3456-7890
+    if (value.length > 3) {
+        let number = value.substring(3); // Ambil setelah +62
+        let formatted = '+62 ';
+        
+        // Format 3-4-4 atau 3-4-3 tergantung panjang
+        if (number.length <= 3) {
+            formatted += number;
+        } else if (number.length <= 7) {
+            formatted += number.substring(0, 3) + '-' + number.substring(3);
+        } else {
+            formatted += number.substring(0, 3) + '-' + 
+                        number.substring(3, 7) + '-' + 
+                        number.substring(7);
+        }
+        
+        value = formatted;
+    }
+    
+    e.target.value = value;
+    });
+
+    // Saat focus, jika kosong, langsung isi dengan +62
+    document.getElementById('no_hp').addEventListener('focus', function(e) {
+        if (e.target.value === '') {
+            e.target.value = '+62 ';
+        }
+    });
+
+    // Saat blur, jika hanya +62, kosongkan
+    document.getElementById('no_hp').addEventListener('blur', function(e) {
+        if (e.target.value === '+62 ' || e.target.value === '+62') {
+            e.target.value = '';
+        }
+    });
+
+    // Prevent paste yang tidak sesuai format
+    document.getElementById('no_hp').addEventListener('paste', function(e) {
+        e.preventDefault();
+        let pastedText = (e.clipboardData || window.clipboardData).getData('text');
+        
+        // Bersihkan dari karakter non-digit
+        pastedText = pastedText.replace(/[^\d]/g, '');
+        
+        // Jika dimulai dengan 0, ganti dengan 62
+        if (pastedText.startsWith('0')) {
+            pastedText = '62' + pastedText.substring(1);
+        }
+        
+        // Jika tidak dimulai dengan 62, tambahkan
+        if (!pastedText.startsWith('62')) {
+            pastedText = '62' + pastedText;
+        }
+        
+        // Set value dan trigger input event
+        this.value = '+' + pastedText;
+        this.dispatchEvent(new Event('input'));
+    });
     </script>
 </body>
 </html>
