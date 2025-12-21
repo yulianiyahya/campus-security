@@ -93,10 +93,38 @@ require_once '../includes/header.php';
 require_once '../includes/navbar_admin.php';
 ?>
 
+<style>
+.export-btn {
+    transition: all 0.3s ease;
+}
+.export-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+}
+.card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+</style>
+
 <div class="container-fluid py-4">
     <!-- Filter Date Range -->
     <div class="card shadow-sm mb-4">
         <div class="card-body">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h5 class="mb-0"><i class="fas fa-filter me-2"></i>Filter Data</h5>
+                <div>
+                    <a href="export_csv.php?type=summary&start_date=<?= $start_date ?>&end_date=<?= $end_date ?>" 
+                       class="btn btn-success export-btn">
+                        <i class="fas fa-file-excel me-1"></i>Export Ringkasan
+                    </a>
+                    <a href="export_csv.php?type=all&start_date=<?= $start_date ?>&end_date=<?= $end_date ?>" 
+                       class="btn btn-primary export-btn">
+                        <i class="fas fa-download me-1"></i>Export Semua Data
+                    </a>
+                </div>
+            </div>
             <form method="GET" class="row g-3 align-items-end">
                 <div class="col-md-4">
                     <label class="form-label">Tanggal Mulai</label>
@@ -108,9 +136,11 @@ require_once '../includes/navbar_admin.php';
                 </div>
                 <div class="col-md-4">
                     <button type="submit" class="btn btn-primary">
-                        <i class="fas fa-filter me-1"></i>Filter
+                        <i class="fas fa-search me-1"></i>Filter
                     </button>
-                    <a href="statistics.php" class="btn btn-secondary">Reset</a>
+                    <a href="statistics.php" class="btn btn-secondary">
+                        <i class="fas fa-redo me-1"></i>Reset
+                    </a>
                 </div>
             </form>
         </div>
@@ -179,6 +209,10 @@ require_once '../includes/navbar_admin.php';
             <div class="card shadow-sm">
                 <div class="card-header bg-white">
                     <h5 class="mb-0"><i class="fas fa-chart-pie me-2"></i>Laporan per Kategori</h5>
+                    <a href="export_csv.php?type=category&start_date=<?= $start_date ?>&end_date=<?= $end_date ?>" 
+                       class="btn btn-sm btn-outline-success export-btn">
+                        <i class="fas fa-file-csv me-1"></i>Export CSV
+                    </a>
                 </div>
                 <div class="card-body">
                     <canvas id="categoryChart"></canvas>
@@ -202,6 +236,10 @@ require_once '../includes/navbar_admin.php';
             <div class="card shadow-sm">
                 <div class="card-header bg-white">
                     <h5 class="mb-0"><i class="fas fa-chart-bar me-2"></i>Laporan per Prioritas</h5>
+                    <a href="export_csv.php?type=priority&start_date=<?= $start_date ?>&end_date=<?= $end_date ?>" 
+                       class="btn btn-sm btn-outline-success export-btn">
+                        <i class="fas fa-file-csv me-1"></i>Export CSV
+                    </a>
                 </div>
                 <div class="card-body">
                     <canvas id="priorityChart"></canvas>
@@ -234,6 +272,10 @@ require_once '../includes/navbar_admin.php';
             <div class="card shadow-sm">
                 <div class="card-header bg-white">
                     <h5 class="mb-0"><i class="fas fa-chart-line me-2"></i>Tren Laporan (6 Bulan Terakhir)</h5>
+                    <a href="export_csv.php?type=monthly&start_date=<?= $start_date ?>&end_date=<?= $end_date ?>" 
+                       class="btn btn-sm btn-outline-success export-btn">
+                        <i class="fas fa-file-csv me-1"></i>Export CSV
+                    </a>
                 </div>
                 <div class="card-body">
                     <canvas id="monthlyChart" height="100"></canvas>
@@ -249,6 +291,10 @@ require_once '../includes/navbar_admin.php';
             <div class="card shadow-sm">
                 <div class="card-header bg-white">
                     <h5 class="mb-0"><i class="fas fa-map-marker-alt me-2"></i>Top 10 Lokasi Kejadian</h5>
+                    <a href="export_csv.php?type=location&start_date=<?= $start_date ?>&end_date=<?= $end_date ?>" 
+                       class="btn btn-sm btn-outline-success export-btn">
+                        <i class="fas fa-file-csv me-1"></i>Export CSV
+                    </a>
                 </div>
                 <div class="card-body">
                     <div class="table-responsive">
@@ -283,6 +329,10 @@ require_once '../includes/navbar_admin.php';
             <div class="card shadow-sm">
                 <div class="card-header bg-white">
                     <h5 class="mb-0"><i class="fas fa-user-shield me-2"></i>Kinerja Petugas</h5>
+                    <a href="export_csv.php?type=officer&start_date=<?= $start_date ?>&end_date=<?= $end_date ?>" 
+                       class="btn btn-sm btn-outline-success export-btn">
+                        <i class="fas fa-file-csv me-1"></i>Export CSV
+                    </a>
                 </div>
                 <div class="card-body">
                     <div class="table-responsive">

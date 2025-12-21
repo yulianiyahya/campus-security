@@ -162,10 +162,14 @@
             transform: scale(1.03);
         }
 
-        /* Satoshi for Nav Links — Crisper than Jakarta Sans */
+        /* ===================================
+        🔧 FIXED NAVBAR - HIGH CONTRAST
+        ================================== */
+
+        /* Navbar Links - WHITE for visibility on blue background */
         .navbar .nav-link {
             font-family: 'Satoshi', 'Plus Jakarta Sans', sans-serif;
-            color: var(--text-primary);
+            color: rgba(255, 255, 255, 0.95) !important; /* ✅ WHITE dengan opacity tinggi */
             font-weight: 500;
             font-size: 0.95rem;
             transition: all 0.3s ease;
@@ -182,21 +186,45 @@
             transform: translateX(-50%);
             width: 0;
             height: 2px;
-            background: var(--primary-soft);
+            background: white; /* ✅ White underline */
             transition: width 0.3s ease;
         }
 
+        /* Hover State - Brighter & Bold */
         .navbar .nav-link:hover {
-            color: var(--primary-soft);
+            color: white !important; /* ✅ Full white saat hover */
             font-weight: 600;
             letter-spacing: 0.5px;
+            text-shadow: 0 0 8px rgba(255, 255, 255, 0.3); /* ✅ Subtle glow effect */
         }
 
         .navbar .nav-link:hover::before {
             width: 80%;
         }
 
-        /* Navbar Dropdown Fix */
+        /* Active State - Gold Accent untuk kontras maksimal */
+        .navbar .nav-link.active {
+            color: #FFD700 !important; /* ✅ Gold untuk active state */
+            font-weight: 600;
+            background: rgba(255, 255, 255, 0.1); /* ✅ Subtle highlight */
+            border-radius: 8px;
+        }
+
+        .navbar .nav-link.active::before {
+            width: 80%;
+            background: #FFD700; /* ✅ Gold underline */
+        }
+
+        /* Dropdown Toggle - Ensure white color */
+        .navbar .dropdown-toggle {
+            color: rgba(255, 255, 255, 0.95) !important;
+        }
+
+        .navbar .dropdown-toggle:hover {
+            color: white !important;
+        }
+
+        /* Navbar Dropdown Menu - Improved contrast */
         .navbar .dropdown-menu {
             background: var(--card-bg);
             border: 1px solid rgba(108, 155, 207, 0.15);
@@ -204,13 +232,50 @@
             box-shadow: 0 8px 32px rgba(108, 155, 207, 0.15);
             padding: 0.5rem;
         }
-        
+
         .navbar .dropdown-item {
-            color: var(--text-primary);
+            color: var(--text-primary) !important; /* ✅ Dark text pada dropdown (white bg) */
             font-family: 'Satoshi', sans-serif;
             border-radius: 10px;
             padding: 0.7rem 1rem;
             transition: all 0.3s ease;
+        }
+
+        .navbar .dropdown-item:hover {
+            background: var(--luxury-gradient);
+            color: white !important;
+            transform: translateX(4px);
+        }
+
+        /* Badge - Ensure visibility */
+        .navbar .badge {
+            font-weight: 700;
+            padding: 0.35em 0.6em;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+        }
+
+        /* Navbar Brand - Keep white */
+        .navbar-brand {
+            color: white !important;
+        }
+
+        /* ===================================
+        📱 RESPONSIVE FIXES
+        ================================== */
+
+        @media (max-width: 991.98px) {
+            /* Mobile: Ensure links are visible when menu expands */
+            .navbar-collapse {
+                background: rgba(108, 155, 207, 0.98);
+                padding: 1rem;
+                border-radius: 12px;
+                margin-top: 0.5rem;
+            }
+            
+            .navbar .nav-link {
+                padding: 0.8rem 1rem;
+                margin: 0.2rem 0;
+            }
         }
 
         /* Premium Sidebar — Typography Enhanced */
@@ -622,6 +687,25 @@
         /* Init shimmer on load */
         .text-shimmer {
             opacity: 1;
+        }
+
+                .phone-prefix {
+            position: absolute;
+            left: 1.2rem;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--text-primary);
+            font-weight: 600;
+            pointer-events: none;
+            z-index: 5;
+        }
+
+        #no_hp {
+            padding-left: 3.5rem !important;
+        }
+
+        #no_hp.has-value {
+            padding-left: 3.5rem !important;
         }
     </style>
 </head>

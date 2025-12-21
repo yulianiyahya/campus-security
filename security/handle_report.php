@@ -284,7 +284,15 @@ include_once '../includes/navbar_security.php';
                             </p>
                             <?php if ($report['reporter_phone']): ?>
                                 <p class="mb-1"><strong>Telepon:</strong> 
-                                    <a href="tel:<?= htmlspecialchars($report['reporter_phone']) ?>"><?= htmlspecialchars($report['reporter_phone']) ?></a>
+                                    <a href="tel:<?= htmlspecialchars($report['reporter_phone']) ?>" class="me-2">
+                                        <i class="fas fa-phone text-primary"></i> <?= htmlspecialchars($report['reporter_phone']) ?>
+                                    </a>
+                                    <br>
+                                    <a href="https://wa.me/<?= preg_replace('/[^0-9]/', '', $report['reporter_phone']) ?>?text=Halo%20<?= urlencode($report['reporter_name']) ?>,%20saya%20Petugas%20Keamanan%20kampus%20terkait%20laporan%20<?= urlencode($report['report_number']) ?>" 
+                                    target="_blank" 
+                                    class="btn btn-success btn-sm mt-1">
+                                        <i class="fab fa-whatsapp"></i> Chat WhatsApp
+                                    </a>
                                 </p>
                             <?php endif; ?>
                         </div>
@@ -456,7 +464,6 @@ include_once '../includes/navbar_security.php';
                                 <option value="patrol">Patroli</option>
                                 <option value="interview">Wawancara</option>
                                 <option value="coordination">Koordinasi</option>
-                                <option value="follow_up">Tindak Lanjut</option>
                                 <option value="documentation">Dokumentasi</option>
                                 <option value="resolution">Penyelesaian</option>
                                 <option value="other">Lainnya</option>

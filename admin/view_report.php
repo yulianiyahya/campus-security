@@ -211,11 +211,18 @@ require_once '../includes/navbar_admin.php';
                                 <p class="mb-1"><strong>Email:</strong> 
                                     <a href="mailto:<?= htmlspecialchars($report['reporter_email']) ?>"><?= htmlspecialchars($report['reporter_email']) ?></a>
                                 </p>
-                                <?php if ($report['reporter_phone']): ?>
-                                    <p class="mb-0"><strong>Telepon:</strong> 
-                                        <a href="tel:<?= htmlspecialchars($report['reporter_phone']) ?>"><?= htmlspecialchars($report['reporter_phone']) ?></a>
-                                    </p>
-                                <?php endif; ?>
+                            <?php if ($report['reporter_phone']): ?>
+                                <p class="mb-0"><strong>Telepon:</strong> 
+                                    <a href="tel:<?= htmlspecialchars($report['reporter_phone']) ?>" class="me-2">
+                                        <i class="fas fa-phone text-primary"></i> <?= htmlspecialchars($report['reporter_phone']) ?>
+                                    </a>
+                                    <a href="https://wa.me/<?= preg_replace('/[^0-9]/', '', $report['reporter_phone']) ?>?text=Halo%20<?= urlencode($report['reporter_name']) ?>,%20saya%20dari%20Tim%20Keamanan%20kampus%20terkait%20laporan%20<?= urlencode($report['report_number']) ?>" 
+                                    target="_blank" 
+                                    class="btn btn-success btn-sm">
+                                        <i class="fab fa-whatsapp"></i> Chat WhatsApp
+                                    </a>
+                                </p>
+                            <?php endif; ?>
                             </div>
                             <div class="col-md-6">
                                 <h6 class="text-muted mb-2"><i class="fas fa-user-shield me-2"></i>Petugas yang Menangani</h6>
