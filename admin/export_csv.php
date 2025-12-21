@@ -67,16 +67,16 @@ function exportSummary($pdo, $output, $start_date, $end_date) {
     fputcsv($output, ['Tanggal Export: ' . date('d-m-Y H:i:s')]);
     fputcsv($output, []);
     
-    // Get statistics
+    // Get statistics - PERBAIKAN: Tambahkan backticks untuk kolom dengan nama reserved keyword
     $sql = "SELECT 
             COUNT(*) as total_reports,
             COUNT(CASE WHEN status = 'new' THEN 1 END) as new_reports,
             COUNT(CASE WHEN status = 'in_progress' THEN 1 END) as in_progress,
             COUNT(CASE WHEN status = 'resolved' THEN 1 END) as resolved,
-            COUNT(CASE WHEN priority = 'low' THEN 1 END) as low_priority,
-            COUNT(CASE WHEN priority = 'medium' THEN 1 END) as medium_priority,
-            COUNT(CASE WHEN priority = 'high' THEN 1 END) as high_priority,
-            COUNT(CASE WHEN priority = 'urgent' THEN 1 END) as urgent_priority
+            COUNT(CASE WHEN priority = 'low' THEN 1 END) as `low_priority`,
+            COUNT(CASE WHEN priority = 'medium' THEN 1 END) as `medium_priority`,
+            COUNT(CASE WHEN priority = 'high' THEN 1 END) as `high_priority`,
+            COUNT(CASE WHEN priority = 'urgent' THEN 1 END) as `urgent_priority`
             FROM reports
             WHERE DATE(created_at) BETWEEN ? AND ?";
     $stmt = $pdo->prepare($sql);
@@ -142,11 +142,12 @@ function exportPriority($pdo, $output, $start_date, $end_date) {
     fputcsv($output, []);
     fputcsv($output, ['Prioritas', 'Jumlah Laporan']);
     
+    // PERBAIKAN: Tambahkan backticks untuk kolom dengan nama reserved keyword
     $sql = "SELECT 
-            COUNT(CASE WHEN priority = 'low' THEN 1 END) as low_priority,
-            COUNT(CASE WHEN priority = 'medium' THEN 1 END) as medium_priority,
-            COUNT(CASE WHEN priority = 'high' THEN 1 END) as high_priority,
-            COUNT(CASE WHEN priority = 'urgent' THEN 1 END) as urgent_priority
+            COUNT(CASE WHEN priority = 'low' THEN 1 END) as `low_priority`,
+            COUNT(CASE WHEN priority = 'medium' THEN 1 END) as `medium_priority`,
+            COUNT(CASE WHEN priority = 'high' THEN 1 END) as `high_priority`,
+            COUNT(CASE WHEN priority = 'urgent' THEN 1 END) as `urgent_priority`
             FROM reports
             WHERE DATE(created_at) BETWEEN ? AND ?";
     $stmt = $pdo->prepare($sql);
