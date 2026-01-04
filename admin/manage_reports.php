@@ -97,8 +97,44 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['assign_officer'])) {
     exit;
 }
 
-// Handle delete report
-if (isset($_GET['delete']) && isset($_GET['id'])) {
+// Handle Soft Delete Report
+if (isset($_GET['soft_delete']) && isset($_GET['id'])) {
+    $report_id = (int)$_GET['id'];
+    
+    try {
+        $sql = "UPDATE reports SET deleted_at = NOW() WHERE id = ?";
+        $stmt = $pdo->prepare($sql);
+        $stmt->execute([$report_id]);
+        
+        set_flash('success', 'Laporan berhasil dihapus (soft delete). Laporan dapat dipulihkan kembali.');
+    } catch (PDOException $e) {
+        set_flash('danger', 'Gagal melakukan soft delete: ' . $e->getMessage());
+    }
+    
+    header('Location: manage_reports.php');
+    exit;
+}
+
+// Handle Restore Report
+if (isset($_GET['restore']) && isset($_GET['id'])) {
+    $report_id = (int)$_GET['id'];
+    
+    try {
+        $sql = "UPDATE reports SET deleted_at = NULL WHERE id = ?";
+        $stmt = $pdo->prepare($sql);
+        $stmt->execute([$report_id]);
+        
+        set_flash('success', 'Laporan berhasil dipulihkan!');
+    } catch (PDOException $e) {
+        set_flash('danger', 'Gagal memulihkan laporan: ' . $e->getMessage());
+    }
+    
+    header('Location: manage_reports.php');
+    exit;
+}
+
+// Handle Hard Delete Report (Permanent)
+if (isset($_GET['hard_delete']) && isset($_GET['id'])) {
     $report_id = (int)$_GET['id'];
     
     try {
@@ -108,9 +144,9 @@ if (isset($_GET['delete']) && isset($_GET['id'])) {
         $pdo->exec("DELETE FROM notifications WHERE reference_id = $report_id AND type = 'report_update'");
         $pdo->exec("DELETE FROM reports WHERE id = $report_id");
         
-        set_flash('success', 'Laporan berhasil dihapus!');
+        set_flash('success', 'Laporan berhasil dihapus permanen (hard delete)!');
     } catch (PDOException $e) {
-        set_flash('danger', 'Gagal menghapus laporan: ' . $e->getMessage());
+        set_flash('danger', 'Gagal melakukan hard delete: ' . $e->getMessage());
     }
     
     header('Location: manage_reports.php');
@@ -121,6 +157,7 @@ if (isset($_GET['delete']) && isset($_GET['id'])) {
 $status_filter = isset($_GET['status']) ? $_GET['status'] : 'all';
 $priority_filter = isset($_GET['priority']) ? $_GET['priority'] : 'all';
 $search = isset($_GET['search']) ? $_GET['search'] : '';
+$show_deleted = isset($_GET['show_deleted']) ? true : false;
 $page = isset($_GET['page']) ? (int)$_GET['page'] : 1;
 $per_page = 15;
 $offset = ($page - 1) * $per_page;
@@ -140,6 +177,13 @@ $sql = "SELECT r.*,
         WHERE 1=1";
 
 $params = [];
+
+// Filter untuk menampilkan laporan yang dihapus atau tidak
+if ($show_deleted) {
+    $sql .= " AND r.deleted_at IS NOT NULL";
+} else {
+    $sql .= " AND r.deleted_at IS NULL";
+}
 
 if ($status_filter !== 'all') {
     $sql .= " AND r.status = ?";
@@ -172,11 +216,11 @@ $stmt = $pdo->prepare($sql);
 $stmt->execute($params);
 $reports = $stmt->fetchAll();
 
-// Get available officers
+// Get available officers (exclude deleted officers)
 $sql = "SELECT so.id, so.badge_number, u.nama, so.shift, so.area_responsibility
         FROM security_officers so
         JOIN users u ON so.user_id = u.id
-        WHERE u.status = 'active'
+        WHERE u.status = 'active' AND so.deleted_at IS NULL
         ORDER BY u.nama";
 $stmt = $pdo->query($sql);
 $officers = $stmt->fetchAll();
@@ -187,10 +231,18 @@ $stats_sql = "SELECT
               SUM(CASE WHEN status = 'new' THEN 1 ELSE 0 END) as new_count,
               SUM(CASE WHEN status = 'in_progress' THEN 1 ELSE 0 END) as in_progress_count,
               SUM(CASE WHEN status = 'resolved' THEN 1 ELSE 0 END) as resolved_count,
-              SUM(CASE WHEN assigned_officer_id IS NULL THEN 1 ELSE 0 END) as unassigned_count
+              SUM(CASE WHEN assigned_officer_id IS NULL THEN 1 ELSE 0 END) as unassigned_count,
+              SUM(CASE WHEN deleted_at IS NOT NULL THEN 1 ELSE 0 END) as deleted_count
               FROM reports";
 $stmt = $pdo->query($stats_sql);
 $stats = $stmt->fetch();
+
+// Function to build pagination URL
+function build_pagination_url($page_num) {
+    $params = $_GET;
+    $params['page'] = $page_num;
+    return '?' . http_build_query($params);
+}
 
 $page_title = "Manajemen Laporan";
 include_once '../includes/header.php';
@@ -202,14 +254,29 @@ include_once '../includes/navbar_admin.php';
 
 <div class="row mb-4">
     <div class="col-12">
-        <h2><i class="fas fa-clipboard-list me-2"></i>Manajemen Laporan</h2>
-        <p class="text-muted">Kelola semua laporan keamanan dan tugaskan ke petugas</p>
+        <div class="d-flex justify-content-between align-items-center">
+            <div>
+                <h2><i class="fas fa-clipboard-list me-2"></i>Manajemen Laporan</h2>
+                <p class="text-muted mb-0">Kelola semua laporan keamanan dan tugaskan ke petugas</p>
+            </div>
+            <div>
+                <?php if ($show_deleted): ?>
+                    <a href="manage_reports.php" class="btn btn-secondary">
+                        <i class="fas fa-arrow-left me-1"></i> Kembali ke Laporan Aktif
+                    </a>
+                <?php else: ?>
+                    <a href="?show_deleted=1" class="btn btn-secondary">
+                        <i class="fas fa-trash-restore me-1"></i> Lihat Laporan Terhapus (<?= $stats['deleted_count'] ?>)
+                    </a>
+                <?php endif; ?>
+            </div>
+        </div>
     </div>
 </div>
 
 <!-- Statistics Cards -->
 <div class="row mb-4">
-    <div class="col-md-3">
+    <div class="col-md-2-4">
         <div class="card bg-primary text-white">
             <div class="card-body">
                 <div class="d-flex justify-content-between align-items-center">
@@ -222,7 +289,7 @@ include_once '../includes/navbar_admin.php';
             </div>
         </div>
     </div>
-    <div class="col-md-3">
+    <div class="col-md-2-4">
         <div class="card bg-danger text-white">
             <div class="card-body">
                 <div class="d-flex justify-content-between align-items-center">
@@ -235,7 +302,7 @@ include_once '../includes/navbar_admin.php';
             </div>
         </div>
     </div>
-    <div class="col-md-3">
+    <div class="col-md-2-4">
         <div class="card bg-info text-white">
             <div class="card-body">
                 <div class="d-flex justify-content-between align-items-center">
@@ -248,7 +315,7 @@ include_once '../includes/navbar_admin.php';
             </div>
         </div>
     </div>
-    <div class="col-md-3">
+    <div class="col-md-2-4">
         <div class="card bg-success text-white">
             <div class="card-body">
                 <div class="d-flex justify-content-between align-items-center">
@@ -261,9 +328,30 @@ include_once '../includes/navbar_admin.php';
             </div>
         </div>
     </div>
+    <div class="col-md-2-4">
+        <div class="card bg-dark text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="mb-0">Terhapus</h6>
+                        <h2 class="mb-0"><?php echo $stats['deleted_count']; ?></h2>
+                    </div>
+                    <i class="fas fa-trash fa-3x opacity-50"></i>
+                </div>
+            </div>
+        </div>
+    </div>
 </div>
 
+<?php if ($show_deleted): ?>
+    <div class="alert alert-warning">
+        <i class="fas fa-info-circle me-2"></i>
+        Menampilkan laporan yang telah dihapus (soft delete). Anda dapat memulihkan atau menghapus permanen.
+    </div>
+<?php endif; ?>
+
 <!-- Filter & Search -->
+<?php if (!$show_deleted): ?>
 <div class="card mb-4">
     <div class="card-body">
         <form method="GET" class="row g-3">
@@ -299,6 +387,7 @@ include_once '../includes/navbar_admin.php';
         </form>
     </div>
 </div>
+<?php endif; ?>
 
 <!-- Reports Table -->
 <div class="card">
@@ -314,8 +403,12 @@ include_once '../includes/navbar_admin.php';
                         <th>Prioritas</th>
                         <th>Status</th>
                         <th>Petugas</th>
-                        <th>Tanggal</th>
-                        <th>Aksi</th>
+                        <?php if ($show_deleted): ?>
+                            <th>Dihapus Pada</th>
+                        <?php else: ?>
+                            <th>Tanggal</th>
+                        <?php endif; ?>
+                        <th class="text-end">Aksi</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -323,7 +416,9 @@ include_once '../includes/navbar_admin.php';
                         <tr>
                             <td colspan="9" class="text-center py-4">
                                 <i class="fas fa-inbox fa-3x text-muted mb-3 d-block"></i>
-                                <p class="text-muted">Tidak ada laporan ditemukan</p>
+                                <p class="text-muted">
+                                    <?= $show_deleted ? 'Tidak ada laporan yang dihapus' : 'Tidak ada laporan ditemukan' ?>
+                                </p>
                             </td>
                         </tr>
                     <?php else: ?>
@@ -380,22 +475,51 @@ include_once '../includes/navbar_admin.php';
                                     <?php endif; ?>
                                 </td>
                                 <td>
-                                    <small><?php echo date('d/m/Y', strtotime($report['created_at'])); ?></small>
+                                    <small>
+                                        <?php 
+                                        if ($show_deleted && $report['deleted_at']) {
+                                            echo date('d M Y H:i', strtotime($report['deleted_at']));
+                                        } else {
+                                            echo date('d/m/Y', strtotime($report['created_at']));
+                                        }
+                                        ?>
+                                    </small>
                                 </td>
-                                <td>
-                                    <div class="btn-group btn-group-sm">
-                                        <a href="view_report.php?id=<?php echo $report['id']; ?>" class="btn btn-info" title="Lihat Detail">
-                                            <i class="fas fa-eye"></i>
-                                        </a>
-                                        <?php if (!$report['assigned_officer_id']): ?>
-                                            <button class="btn btn-success" onclick="assignOfficer(<?php echo $report['id']; ?>, '<?php echo $report['report_number']; ?>')" title="Tugaskan Petugas">
-                                                <i class="fas fa-user-plus"></i>
+                                <td class="text-end">
+                                    <?php if ($show_deleted): ?>
+                                        <!-- Tombol untuk laporan yang dihapus -->
+                                        <div class="btn-group btn-group-sm">
+                                            <a href="?restore=1&id=<?= $report['id'] ?>" 
+                                               class="btn btn-success" 
+                                               onclick="return confirm('Yakin ingin memulihkan laporan ini?')" 
+                                               title="Pulihkan Laporan">
+                                                <i class="fas fa-undo"></i>
+                                            </a>
+                                            <button class="btn btn-danger" 
+                                                    onclick="confirmHardDelete(<?= $report['id'] ?>, '<?= htmlspecialchars($report['report_number']) ?>')" 
+                                                    title="Hapus Permanen">
+                                                <i class="fas fa-trash-alt"></i>
                                             </button>
-                                        <?php endif; ?>
-                                        <a href="?delete=1&id=<?php echo $report['id']; ?>" class="btn btn-danger" onclick="return confirm('Yakin ingin menghapus laporan ini?')" title="Hapus">
-                                            <i class="fas fa-trash"></i>
-                                        </a>
-                                    </div>
+                                        </div>
+                                    <?php else: ?>
+                                        <!-- Tombol untuk laporan aktif -->
+                                        <div class="btn-group btn-group-sm">
+                                            <a href="view_report.php?id=<?php echo $report['id']; ?>" class="btn btn-info" title="Lihat Detail">
+                                                <i class="fas fa-eye"></i>
+                                            </a>
+                                            <?php if (!$report['assigned_officer_id']): ?>
+                                                <button class="btn btn-success" onclick="assignOfficer(<?php echo $report['id']; ?>, '<?php echo $report['report_number']; ?>')" title="Tugaskan Petugas">
+                                                    <i class="fas fa-user-plus"></i>
+                                                </button>
+                                            <?php endif; ?>
+                                            <a href="?soft_delete=1&id=<?php echo $report['id']; ?>" 
+                                               class="btn btn-danger" 
+                                               onclick="return confirm('Yakin ingin menghapus laporan ini? (Soft Delete - dapat dipulihkan)')" 
+                                               title="Hapus (Soft Delete)">
+                                                <i class="fas fa-trash"></i>
+                                            </a>
+                                        </div>
+                                    <?php endif; ?>
                                 </td>
                             </tr>
                         <?php endforeach; ?>
@@ -410,7 +534,7 @@ include_once '../includes/navbar_admin.php';
                 <ul class="pagination justify-content-center">
                     <?php if ($page > 1): ?>
                         <li class="page-item">
-                            <a class="page-link" href="?page=<?php echo $page-1; ?>&status=<?php echo $status_filter; ?>&priority=<?php echo $priority_filter; ?>&search=<?php echo urlencode($search); ?>">
+                            <a class="page-link" href="<?= build_pagination_url($page-1) ?>">
                                 <i class="fas fa-chevron-left"></i>
                             </a>
                         </li>
@@ -423,7 +547,7 @@ include_once '../includes/navbar_admin.php';
                     for ($i = $start; $i <= $end; $i++):
                     ?>
                         <li class="page-item <?php echo $i === $page ? 'active' : ''; ?>">
-                            <a class="page-link" href="?page=<?php echo $i; ?>&status=<?php echo $status_filter; ?>&priority=<?php echo $priority_filter; ?>&search=<?php echo urlencode($search); ?>">
+                            <a class="page-link" href="<?= build_pagination_url($i) ?>">
                                 <?php echo $i; ?>
                             </a>
                         </li>
@@ -431,7 +555,7 @@ include_once '../includes/navbar_admin.php';
 
                     <?php if ($page < $total_pages): ?>
                         <li class="page-item">
-                            <a class="page-link" href="?page=<?php echo $page+1; ?>&status=<?php echo $status_filter; ?>&priority=<?php echo $priority_filter; ?>&search=<?php echo urlencode($search); ?>">
+                            <a class="page-link" href="<?= build_pagination_url($page+1) ?>">
                                 <i class="fas fa-chevron-right"></i>
                             </a>
                         </li>
@@ -489,6 +613,56 @@ include_once '../includes/navbar_admin.php';
     </div>
 </div>
 
+<!-- Hard Delete Confirmation Modal -->
+<div class="modal fade" id="hardDeleteModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content border-danger">
+            <div class="modal-header bg-danger text-white">
+                <h5 class="modal-title"><i class="fas fa-exclamation-triangle me-2"></i>Konfirmasi Hapus Permanen</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="alert alert-danger">
+                    <i class="fas fa-exclamation-circle me-2"></i>
+                    <strong>PERINGATAN!</strong> Tindakan ini tidak dapat dibatalkan!
+                </div>
+                <p class="mb-3">Anda akan menghapus permanen laporan:</p>
+                <p class="text-center">
+                    <strong class="fs-5" id="hard_delete_report_number"></strong>
+                </p>
+                <p class="text-muted small">Data laporan beserta semua lampiran, aksi, dan notifikasi terkait akan dihapus selamanya dari database dan tidak dapat dipulihkan kembali.</p>
+                
+                <div class="form-check mt-3">
+                    <input class="form-check-input" type="checkbox" id="confirmHardDelete" required>
+                    <label class="form-check-label text-danger" for="confirmHardDelete">
+                        Saya memahami bahwa tindakan ini permanen dan tidak dapat dibatalkan
+                    </label>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+                <a href="#" id="hardDeleteBtn" class="btn btn-danger disabled">
+                    <i class="fas fa-trash-alt me-1"></i> Hapus Permanen
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.col-md-2-4 {
+    flex: 0 0 auto;
+    width: 20%;
+}
+
+@media (max-width: 768px) {
+    .col-md-2-4 {
+        width: 100%;
+        margin-bottom: 1rem;
+    }
+}
+</style>
+
 <script>
 function assignOfficer(reportId, reportNumber) {
     document.getElementById('modal_report_id').value = reportId;
@@ -500,6 +674,31 @@ function assignOfficer(reportId, reportNumber) {
     
     var modal = new bootstrap.Modal(document.getElementById('assignModal'));
     modal.show();
+}
+
+function confirmHardDelete(reportId, reportNumber) {
+    document.getElementById('hard_delete_report_number').textContent = reportNumber;
+    
+    const checkbox = document.getElementById('confirmHardDelete');
+    const deleteBtn = document.getElementById('hardDeleteBtn');
+    
+    // Reset checkbox
+    checkbox.checked = false;
+    deleteBtn.classList.add('disabled');
+    deleteBtn.href = '#';
+    
+    // Enable delete button when checkbox is checked
+    checkbox.addEventListener('change', function() {
+        if (this.checked) {
+            deleteBtn.classList.remove('disabled');
+            deleteBtn.href = '?hard_delete=1&id=' + reportId;
+        } else {
+            deleteBtn.classList.add('disabled');
+            deleteBtn.href = '#';
+        }
+    });
+    
+    new bootstrap.Modal(document.getElementById('hardDeleteModal')).show();
 }
 
 // Form validation

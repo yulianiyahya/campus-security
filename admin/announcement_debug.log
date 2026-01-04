@@ -397,3 +397,305 @@ POST Data: Array
 )
 
 Total announcements found: 7
+
+
+2026-01-03 13:40:39 - Page Loaded
+User ID: 1
+Request Method: GET
+POST Data: Array
+(
+)
+
+Total announcements found: 7
+
+
+2026-01-03 13:43:30 - Page Loaded
+User ID: 1
+Request Method: GET
+POST Data: Array
+(
+)
+
+✅ AUTO CLEANUP: 3 expired announcements soft deleted
+Total announcements found: 4
+
+
+2026-01-03 13:43:45 - Page Loaded
+User ID: 1
+Request Method: GET
+POST Data: Array
+(
+)
+
+Total announcements found: 4
+
+
+2026-01-03 13:43:52 - Page Loaded
+User ID: 1
+Request Method: GET
+POST Data: Array
+(
+)
+
+Total announcements found: 4
+
+
+2026-01-03 13:44:37 - Page Loaded
+User ID: 1
+Request Method: POST
+POST Data: Array
+(
+    [title] => baru
+    [content] => baru
+    [type] => emergency
+    [priority] => high
+    [publish_date] => 2026-01-03T13:45
+    [expire_date] => 2026-01-03T13:46
+    [is_published] => 1
+)
+
+
+=== CREATE ANNOUNCEMENT TRIGGERED ===
+Title: baru
+Content: baru
+Image uploaded: uploads/announcements/announcement_1767422677_6958bad5b3e4c.png
+SQL Prepared
+Parameters bound
+Execute result: TRUE
+Last Insert ID: 15
+SUCCESS - Announcement ID: 15
+
+
+2026-01-03 13:44:37 - Page Loaded
+User ID: 1
+Request Method: GET
+POST Data: Array
+(
+)
+
+Total announcements found: 5
+
+
+2026-01-03 13:44:45 - Page Loaded
+User ID: 1
+Request Method: GET
+POST Data: Array
+(
+)
+
+Total announcements found: 5
+
+
+2026-01-03 13:45:54 - Page Loaded
+User ID: 1
+Request Method: GET
+POST Data: Array
+(
+)
+
+Total announcements found: 5
+
+
+2026-01-03 13:46:04 - Page Loaded
+User ID: 1
+Request Method: GET
+POST Data: Array
+(
+)
+
+✅ AUTO CLEANUP: 1 expired announcements soft deleted
+Total announcements found: 4
+
+
+2026-01-03 13:46:09 - Page Loaded
+User ID: 1
+Request Method: GET
+POST Data: Array
+(
+)
+
+Total announcements found: 5
+
+
+2026-01-03 13:55:15 - Page Loaded
+
+
+2026-01-03 14:08:27 - Page Loaded
+User ID: 1
+Request Method: GET
+POST Data: Array
+(
+)
+
+Total announcements found: 4
+
+
+2026-01-03 14:08:46 - Page Loaded
+User ID: 1
+Request Method: GET
+POST Data: Array
+(
+)
+
+SOFT DELETE ANNOUNCEMENT TRIGGERED
+SUCCESS - Soft deleted announcement ID: 10
+
+
+2026-01-03 14:08:47 - Page Loaded
+User ID: 1
+Request Method: GET
+POST Data: Array
+(
+)
+
+Total announcements found: 3
+
+
+2026-01-03 14:09:09 - Page Loaded
+User ID: 1
+Request Method: POST
+POST Data: Array
+(
+    [title] => boom
+    [content] => boom
+    [type] => general
+    [priority] => urgent
+    [publish_date] => 2026-01-03T14:08
+    [expire_date] => 2026-01-23T14:09
+    [is_published] => 1
+)
+
+
+=== CREATE ANNOUNCEMENT TRIGGERED ===
+Title: boom
+Content: boom
+Image uploaded: uploads/announcements/announcement_1767424149_6958c095955a7.png
+SQL Prepared
+Parameters bound
+Execute result: TRUE
+Last Insert ID: 16
+SUCCESS - Announcement ID: 16
+
+
+2026-01-03 14:09:09 - Page Loaded
+User ID: 1
+Request Method: GET
+POST Data: Array
+(
+)
+
+Total announcements found: 4
+
+
+2026-01-03 14:51:48 - Page Loaded
+User ID: 1
+Request Method: GET
+POST Data: Array
+(
+)
+
+Total announcements found: 4
+
+
+2026-01-03 14:52:16 - Page Loaded
+User ID: 1
+Request Method: POST
+POST Data: Array
+(
+    [title] => adminnnnnnn
+    [content] => adminnnnnnnnnnnnnnnnnnn
+    [type] => general
+    [priority] => normal
+    [publish_date] => 2026-01-03T14:51
+    [expire_date] => 2026-01-23T14:52
+    [is_published] => 1
+)
+
+
+=== CREATE ANNOUNCEMENT TRIGGERED ===
+Title: adminnnnnnn
+Content: adminnnnnnnnnnnnnnnnnnn
+Image uploaded: uploads/announcements/announcement_1767426736_6958cab058463.png
+SQL Prepared
+Parameters bound
+Execute result: TRUE
+Last Insert ID: 17
+SUCCESS - Announcement ID: 17
+
+
+2026-01-03 14:52:16 - Page Loaded
+User ID: 1
+Request Method: GET
+POST Data: Array
+(
+)
+
+Total announcements found: 5
+
+
+2026-01-03 14:53:13 - Page Loaded
+User ID: 1
+Request Method: GET
+POST Data: Array
+(
+)
+
+Total announcements found: 5
+
+
+2026-01-03 14:53:25 - Page Loaded
+User ID: 1
+Request Method: GET
+POST Data: Array
+(
+)
+
+Total announcements found: 5
+
+
+2026-01-03 14:53:33 - Page Loaded
+User ID: 1
+Request Method: POST
+POST Data: Array
+(
+    [announcement_id] => 17
+    [remove_image] => 0
+    [title] => adminnnnnnn
+    [content] => adminnnnnnnnnnnnnnnnnnn
+    [type] => emergency
+    [priority] => urgent
+    [publish_date] => 2026-01-03T14:51
+    [expire_date] => 2026-01-23T14:52
+    [is_published] => 1
+)
+
+
+=== CREATE ANNOUNCEMENT TRIGGERED ===
+Title: adminnnnnnn
+Content: adminnnnnnnnnnnnnnnnnnn
+SQL Prepared
+Parameters bound
+Execute result: TRUE
+Last Insert ID: 18
+SUCCESS - Announcement ID: 18
+
+
+2026-01-03 14:53:33 - Page Loaded
+User ID: 1
+Request Method: GET
+POST Data: Array
+(
+)
+
+Total announcements found: 6
+
+
+2026-01-04 15:03:01 - Page Loaded
+User ID: 1
+Request Method: GET
+POST Data: Array
+(
+)
+
+❌ AUTO CLEANUP ERROR: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'deleted_at' in 'where clause'
+FETCH ERROR: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'a.deleted_at' in 'where clause'
