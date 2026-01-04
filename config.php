@@ -57,6 +57,10 @@ try {
             PDO::ATTR_EMULATE_PREPARES => false
         ]
     );
+    
+    // ✅ FIX TIMEZONE - Set MySQL timezone to Jakarta (UTC+7)
+    $pdo->exec("SET time_zone = '+07:00'");
+    
 } catch (PDOException $e) {
     die("Koneksi Database Gagal: " . $e->getMessage());
 }

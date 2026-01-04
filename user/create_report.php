@@ -249,15 +249,78 @@ require_once '../includes/navbar_user.php';
                                     <i class="fas fa-tag me-2"></i>Kategori Kejadian
                                     <span class="text-danger">*</span>
                                 </label>
-                                <select name="category_id" class="form-select" required>
-                                    <option value="">-- Pilih Kategori --</option>
-                                    <?php foreach ($categories as $cat): ?>
-                                        <option value="<?php echo $cat['id']; ?>">
-                                            <?php echo htmlspecialchars($cat['name']); ?>
-                                            - <?php echo htmlspecialchars($cat['description']); ?>
+                                <select name="category_id" class="form-select form-select-lg" required id="categorySelect">
+                                    <option value="">-- Pilih Kategori Kejadian --</option>
+                                    <?php 
+                                    $category_colors = [
+                                        'pencurian' => 'danger',
+                                        'kerusakan' => 'warning',
+                                        'kehilangan' => 'info',
+                                        'keamanan' => 'primary',
+                                        'kebersihan' => 'success',
+                                        'lainnya' => 'secondary'
+                                    ];
+                                    
+                                    foreach ($categories as $cat): 
+                                        // Determine color
+                                        $category_slug = strtolower(str_replace(' ', '', $cat['name']));
+                                        $color = 'primary';
+                                        foreach ($category_colors as $key => $badge_color) {
+                                            if (strpos($category_slug, $key) !== false) {
+                                                $color = $badge_color;
+                                                break;
+                                            }
+                                        }
+                                        
+                                        // Get icon
+                                        $icon = $cat['icon'] ?? 'clipboard';
+                                        
+                                        // Render icon untuk option
+                                        if (preg_match('/[^\x00-\x7F]/', $icon)) {
+                                            $icon_display = $icon; // Emoji
+                                        } else {
+                                            // Emoji mapping untuk Font Awesome icons
+                                            $icon_emoji_map = [
+                                                'user-shield' => '🔒',
+                                                'shield-alt' => '🛡️',
+                                                'exclamation-triangle' => '⚠️',
+                                                'fire' => '🔥',
+                                                'bolt' => '⚡',
+                                                'wrench' => '🔧',
+                                                'tools' => '🛠️',
+                                                'search' => '🔍',
+                                                'broom' => '🧹',
+                                                'ban' => '🚫',
+                                                'car' => '🚗',
+                                                'user' => '👤',
+                                                'users' => '👥',
+                                                'clipboard' => '📋'
+                                            ];
+                                            $icon_display = $icon_emoji_map[$icon] ?? '📌';
+                                        }
+                                    ?>
+                                        <option value="<?php echo $cat['id']; ?>" 
+                                                data-icon="<?php echo htmlspecialchars($icon); ?>"
+                                                data-color="<?php echo $color; ?>">
+                                            <?php echo $icon_display; ?> <?php echo htmlspecialchars($cat['name']); ?> - <?php echo htmlspecialchars($cat['description']); ?>
                                         </option>
                                     <?php endforeach; ?>
                                 </select>
+                                
+                                <!-- Preview card yang terpilih -->
+                                <div id="selectedCategoryPreview" class="mt-3" style="display: none;">
+                                    <div class="card border-primary">
+                                        <div class="card-body py-2">
+                                            <div class="d-flex align-items-center">
+                                                <div id="previewIcon" class="me-3 fs-3"></div>
+                                                <div>
+                                                    <h6 class="mb-0" id="previewName"></h6>
+                                                    <small class="text-muted" id="previewDesc"></small>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
 
                             <!-- Location -->
@@ -733,6 +796,38 @@ document.addEventListener('DOMContentLoaded', function() {
         getCurrentLocation();
     }, 500);
 });
+
+// ✅ Category Select dengan Preview
+document.getElementById('categorySelect')?.addEventListener('change', function() {
+    const selectedOption = this.options[this.selectedIndex];
+    const preview = document.getElementById('selectedCategoryPreview');
+    
+    if (this.value) {
+        const icon = selectedOption.dataset.icon || 'clipboard';
+        const color = selectedOption.dataset.color || 'primary';
+        const name = selectedOption.text.split(' - ')[0].trim();
+        const desc = selectedOption.text.split(' - ')[1]?.trim() || '';
+        
+        // Render icon
+        let iconHtml;
+        if (/[^\x00-\x7F]/.test(icon)) {
+            // Emoji
+            iconHtml = icon;
+        } else {
+            // Font Awesome
+            iconHtml = `<i class="fas fa-${icon} text-${color}"></i>`;
+        }
+        
+        document.getElementById('previewIcon').innerHTML = iconHtml;
+        document.getElementById('previewName').textContent = name;
+        document.getElementById('previewDesc').textContent = desc;
+        
+        preview.style.display = 'block';
+    } else {
+        preview.style.display = 'none';
+    }
+});
+
 </script>
 
 <style>

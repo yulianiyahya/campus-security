@@ -43,7 +43,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['edit_officer'])) {
     $area_responsibility = clean_input($_POST['area_responsibility']);
     
     try {
-        $sql = "UPDATE security_officers SET badge_number = ?, shift = ?, area_responsibility = ? WHERE id = ?";
+        $sql = "UPDATE security_officers SET badge_number = ?, shift = ?, area_responsibility = ?, updated_at = NOW() WHERE id = ?";
         $stmt = $pdo->prepare($sql);
         $stmt->execute([$badge_number, $shift, $area_responsibility, $officer_id]);
         
@@ -55,29 +55,65 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['edit_officer'])) {
     exit();
 }
 
-// Handle Delete Officer
-if (isset($_GET['delete']) && isset($_GET['id'])) {
+// Handle Soft Delete Officer
+if (isset($_GET['soft_delete']) && isset($_GET['id'])) {
+    $officer_id = (int)$_GET['id'];
+    
+    try {
+        $sql = "UPDATE security_officers SET deleted_at = NOW() WHERE id = ?";
+        $stmt = $pdo->prepare($sql);
+        $stmt->execute([$officer_id]);
+        $_SESSION['success_message'] = "Petugas berhasil dihapus (soft delete). Petugas dapat dipulihkan kembali.";
+    } catch (PDOException $e) {
+        $_SESSION['error_message'] = "Gagal melakukan soft delete: " . $e->getMessage();
+    }
+    header('Location: manage_officer.php');
+    exit();
+}
+
+// Handle Restore Officer
+if (isset($_GET['restore']) && isset($_GET['id'])) {
+    $officer_id = (int)$_GET['id'];
+    
+    try {
+        $sql = "UPDATE security_officers SET deleted_at = NULL WHERE id = ?";
+        $stmt = $pdo->prepare($sql);
+        $stmt->execute([$officer_id]);
+        $_SESSION['success_message'] = "Petugas berhasil dipulihkan!";
+    } catch (PDOException $e) {
+        $_SESSION['error_message'] = "Gagal memulihkan petugas: " . $e->getMessage();
+    }
+    header('Location: manage_officer.php');
+    exit();
+}
+
+// Handle Hard Delete Officer (Permanent)
+if (isset($_GET['hard_delete']) && isset($_GET['id'])) {
     $officer_id = (int)$_GET['id'];
     
     try {
         $sql = "DELETE FROM security_officers WHERE id = ?";
         $stmt = $pdo->prepare($sql);
         $stmt->execute([$officer_id]);
-        
-        $_SESSION['success_message'] = "Petugas berhasil dihapus!";
+        $_SESSION['success_message'] = "Petugas berhasil dihapus permanen (hard delete)!";
     } catch (PDOException $e) {
-        $_SESSION['error_message'] = "Gagal menghapus petugas: " . $e->getMessage();
+        $_SESSION['error_message'] = "Gagal melakukan hard delete: " . $e->getMessage();
     }
     header('Location: manage_officer.php');
     exit();
 }
 
-// Get all officers with user info
+// Get filter
+$shift_filter = isset($_GET['shift']) ? $_GET['shift'] : 'all';
+$search = isset($_GET['search']) ? $_GET['search'] : '';
+$show_deleted = isset($_GET['show_deleted']) ? true : false;
+
 $sql = "SELECT so.*, u.nim_nip, u.nama, u.email, u.phone, u.status,
         COUNT(DISTINCT r.id) as total_handled
         FROM security_officers so
         JOIN users u ON so.user_id = u.id
         LEFT JOIN reports r ON r.assigned_officer_id = so.id
+        WHERE " . ($show_deleted ? "so.deleted_at IS NOT NULL" : "so.deleted_at IS NULL") . "
         GROUP BY so.id
         ORDER BY u.nama";
 $stmt = $pdo->query($sql);
@@ -85,8 +121,8 @@ $officers = $stmt->fetchAll();
 
 // Get available security users (not yet officers)
 $sql = "SELECT u.* FROM users u
-        LEFT JOIN security_officers so ON u.id = so.user_id
-        WHERE u.role = 'security' AND so.id IS NULL
+        LEFT JOIN security_officers so ON u.id = so.user_id AND so.deleted_at IS NULL
+        WHERE u.role = 'security' AND so.id IS NULL AND u.deleted_at IS NULL
         ORDER BY u.nama";
 $stmt = $pdo->query($sql);
 $available_users = $stmt->fetchAll();
@@ -97,7 +133,8 @@ $stats_sql = "SELECT
               COUNT(DISTINCT CASE WHEN so.shift = 'morning' THEN so.id END) as morning_shift,
               COUNT(DISTINCT CASE WHEN so.shift = 'afternoon' THEN so.id END) as afternoon_shift,
               COUNT(DISTINCT CASE WHEN so.shift = 'night' THEN so.id END) as night_shift,
-              COUNT(DISTINCT r.id) as total_assignments
+              COUNT(DISTINCT r.id) as total_assignments,
+              COUNT(DISTINCT CASE WHEN so.deleted_at IS NOT NULL THEN so.id END) as deleted_count
               FROM security_officers so
               JOIN users u ON so.user_id = u.id
               LEFT JOIN reports r ON r.assigned_officer_id = so.id
@@ -118,9 +155,20 @@ include_once '../includes/navbar_admin.php';
                     <h2><i class="fas fa-user-shield me-2"></i>Manajemen Petugas Keamanan</h2>
                     <p class="text-muted mb-0">Kelola data petugas keamanan kampus</p>
                 </div>
-                <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addOfficerModal">
-                    <i class="fas fa-plus me-1"></i> Tambah Petugas
-                </button>
+                <div>
+                    <?php if ($show_deleted): ?>
+                        <a href="manage_officer.php" class="btn btn-secondary me-2">
+                            <i class="fas fa-arrow-left me-1"></i> Kembali ke Petugas Aktif
+                        </a>
+                    <?php else: ?>
+                        <a href="?show_deleted=1" class="btn btn-secondary me-2">
+                            <i class="fas fa-trash-restore me-1"></i> Lihat Petugas Terhapus (<?= $stats['deleted_count'] ?>)
+                        </a>
+                    <?php endif; ?>
+                    <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addOfficerModal">
+                        <i class="fas fa-plus me-1"></i> Tambah Petugas
+                    </button>
+                </div>
             </div>
         </div>
     </div>
@@ -143,7 +191,7 @@ include_once '../includes/navbar_admin.php';
 
     <!-- Statistics Cards -->
     <div class="row mb-4">
-        <div class="col-md-3">
+        <div class="col-md-2-4">
             <div class="card bg-primary text-white">
                 <div class="card-body">
                     <div class="d-flex justify-content-between align-items-center">
@@ -156,7 +204,7 @@ include_once '../includes/navbar_admin.php';
                 </div>
             </div>
         </div>
-        <div class="col-md-3">
+        <div class="col-md-2-4">
             <div class="card bg-warning text-white">
                 <div class="card-body">
                     <div class="d-flex justify-content-between align-items-center">
@@ -169,7 +217,7 @@ include_once '../includes/navbar_admin.php';
                 </div>
             </div>
         </div>
-        <div class="col-md-3">
+        <div class="col-md-2-4">
             <div class="card bg-info text-white">
                 <div class="card-body">
                     <div class="d-flex justify-content-between align-items-center">
@@ -182,7 +230,7 @@ include_once '../includes/navbar_admin.php';
                 </div>
             </div>
         </div>
-        <div class="col-md-3">
+        <div class="col-md-2-4">
             <div class="card bg-dark text-white">
                 <div class="card-body">
                     <div class="d-flex justify-content-between align-items-center">
@@ -195,7 +243,27 @@ include_once '../includes/navbar_admin.php';
                 </div>
             </div>
         </div>
+        <div class="col-md-2-4">
+            <div class="card bg-danger text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="mb-0">Terhapus</h6>
+                            <h2 class="mb-0"><?= $stats['deleted_count'] ?></h2>
+                        </div>
+                        <i class="fas fa-trash fa-3x opacity-50"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
+
+    <?php if ($show_deleted): ?>
+        <div class="alert alert-warning">
+            <i class="fas fa-info-circle me-2"></i>
+            Menampilkan petugas yang telah dihapus (soft delete). Anda dapat memulihkan atau menghapus permanen.
+        </div>
+    <?php endif; ?>
 
     <!-- Officers Table -->
     <div class="card">
@@ -213,15 +281,20 @@ include_once '../includes/navbar_admin.php';
                             <th>Area</th>
                             <th>Tugas Ditangani</th>
                             <th>Status</th>
-                            <th>Aksi</th>
+                            <?php if ($show_deleted): ?>
+                                <th>Dihapus Pada</th>
+                            <?php endif; ?>
+                            <th class="text-end">Aksi</th>
                         </tr>
                     </thead>
                     <tbody>
                         <?php if (empty($officers)): ?>
                             <tr>
-                                <td colspan="10" class="text-center py-4">
+                                <td colspan="<?= $show_deleted ? 11 : 10 ?>" class="text-center py-4">
                                     <i class="fas fa-user-slash fa-3x text-muted mb-3 d-block"></i>
-                                    <p class="text-muted">Belum ada petugas keamanan terdaftar</p>
+                                    <p class="text-muted">
+                                        <?= $show_deleted ? 'Tidak ada petugas yang dihapus' : 'Belum ada petugas keamanan terdaftar' ?>
+                                    </p>
                                 </td>
                             </tr>
                         <?php else: ?>
@@ -262,15 +335,45 @@ include_once '../includes/navbar_admin.php';
                                             <?= $officer['status'] === 'active' ? 'Aktif' : 'Nonaktif' ?>
                                         </span>
                                     </td>
-                                    <td>
-                                        <div class="btn-group btn-group-sm">
-                                            <button class="btn btn-warning" onclick='editOfficer(<?= json_encode($officer) ?>)' title="Edit">
-                                                <i class="fas fa-edit"></i>
-                                            </button>
-                                            <a href="?delete=1&id=<?= $officer['id'] ?>" class="btn btn-danger" onclick="return confirm('Yakin ingin menghapus petugas ini?')" title="Hapus">
-                                                <i class="fas fa-trash"></i>
-                                            </a>
-                                        </div>
+                                    <?php if ($show_deleted): ?>
+                                        <td>
+                                            <small>
+                                                <?= date('d M Y H:i', strtotime($officer['deleted_at'])) ?>
+                                            </small>
+                                        </td>
+                                    <?php endif; ?>
+                                    <td class="text-end">
+                                        <?php if ($show_deleted): ?>
+                                            <!-- Tombol untuk petugas yang dihapus -->
+                                            <div class="btn-group btn-group-sm">
+                                                <a href="?restore=1&id=<?= $officer['id'] ?>" 
+                                                   class="btn btn-success" 
+                                                   onclick="return confirm('Yakin ingin memulihkan petugas ini?')" 
+                                                   title="Pulihkan Petugas">
+                                                    <i class="fas fa-undo"></i>
+                                                </a>
+                                                <button class="btn btn-danger" 
+                                                        onclick="confirmHardDelete(<?= $officer['id'] ?>, '<?= htmlspecialchars($officer['nama']) ?>')" 
+                                                        title="Hapus Permanen">
+                                                    <i class="fas fa-trash-alt"></i>
+                                                </button>
+                                            </div>
+                                        <?php else: ?>
+                                            <!-- Tombol untuk petugas aktif -->
+                                            <div class="btn-group btn-group-sm">
+                                                <button class="btn btn-warning" 
+                                                        onclick='editOfficer(<?= json_encode($officer) ?>)' 
+                                                        title="Edit">
+                                                    <i class="fas fa-edit"></i>
+                                                </button>
+                                                <a href="?soft_delete=1&id=<?= $officer['id'] ?>" 
+                                                   class="btn btn-danger" 
+                                                   onclick="return confirm('Yakin ingin menghapus petugas ini? (Soft Delete - dapat dipulihkan)')" 
+                                                   title="Hapus (Soft Delete)">
+                                                    <i class="fas fa-trash"></i>
+                                                </a>
+                                            </div>
+                                        <?php endif; ?>
                                     </td>
                                 </tr>
                             <?php endforeach; ?>
@@ -397,6 +500,56 @@ include_once '../includes/navbar_admin.php';
     </div>
 </div>
 
+<!-- Hard Delete Confirmation Modal -->
+<div class="modal fade" id="hardDeleteModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content border-danger">
+            <div class="modal-header bg-danger text-white">
+                <h5 class="modal-title"><i class="fas fa-exclamation-triangle me-2"></i>Konfirmasi Hapus Permanen</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="alert alert-danger">
+                    <i class="fas fa-exclamation-circle me-2"></i>
+                    <strong>PERINGATAN!</strong> Tindakan ini tidak dapat dibatalkan!
+                </div>
+                <p class="mb-3">Anda akan menghapus permanen petugas:</p>
+                <p class="text-center">
+                    <strong class="fs-5" id="hard_delete_officer_name"></strong>
+                </p>
+                <p class="text-muted small">Data petugas akan dihapus selamanya dari database dan tidak dapat dipulihkan kembali.</p>
+                
+                <div class="form-check mt-3">
+                    <input class="form-check-input" type="checkbox" id="confirmHardDelete" required>
+                    <label class="form-check-label text-danger" for="confirmHardDelete">
+                        Saya memahami bahwa tindakan ini permanen dan tidak dapat dibatalkan
+                    </label>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+                <a href="#" id="hardDeleteBtn" class="btn btn-danger disabled">
+                    <i class="fas fa-trash-alt me-1"></i> Hapus Permanen
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.col-md-2-4 {
+    flex: 0 0 auto;
+    width: 20%;
+}
+
+@media (max-width: 768px) {
+    .col-md-2-4 {
+        width: 100%;
+        margin-bottom: 1rem;
+    }
+}
+</style>
+
 <script>
 function editOfficer(officer) {
     document.getElementById('edit_officer_id').value = officer.id;
@@ -406,6 +559,31 @@ function editOfficer(officer) {
     document.getElementById('edit_area').value = officer.area_responsibility || '';
     
     new bootstrap.Modal(document.getElementById('editOfficerModal')).show();
+}
+
+function confirmHardDelete(officerId, officerName) {
+    document.getElementById('hard_delete_officer_name').textContent = officerName;
+    
+    const checkbox = document.getElementById('confirmHardDelete');
+    const deleteBtn = document.getElementById('hardDeleteBtn');
+    
+    // Reset checkbox
+    checkbox.checked = false;
+    deleteBtn.classList.add('disabled');
+    deleteBtn.href = '#';
+    
+    // Enable delete button when checkbox is checked
+    checkbox.addEventListener('change', function() {
+        if (this.checked) {
+            deleteBtn.classList.remove('disabled');
+            deleteBtn.href = '?hard_delete=1&id=' + officerId;
+        } else {
+            deleteBtn.classList.add('disabled');
+            deleteBtn.href = '#';
+        }
+    });
+    
+    new bootstrap.Modal(document.getElementById('hardDeleteModal')).show();
 }
 </script>
 

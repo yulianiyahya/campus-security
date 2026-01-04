@@ -326,6 +326,27 @@ if (isset($_GET['permanent_delete'])) {
     exit;
 }
 
+// ✅ AUTO CLEANUP - Soft delete expired announcements
+try {
+    $sql = "UPDATE announcements 
+            SET deleted_at = NOW(), deleted_by = :deleted_by 
+            WHERE expire_date IS NOT NULL 
+            AND expire_date < NOW() 
+            AND deleted_at IS NULL";
+    $stmt = $pdo->prepare($sql);
+    $stmt->bindParam(':deleted_by', $user_id, PDO::PARAM_INT);
+    $stmt->execute();
+    
+    $expired_count = $stmt->rowCount();
+    if ($expired_count > 0) {
+        file_put_contents($debug_log, "✅ AUTO CLEANUP: $expired_count expired announcements soft deleted\n", FILE_APPEND);
+        $_SESSION['flash_message'] = "$expired_count pengumuman kadaluarsa telah dihapus otomatis.";
+        $_SESSION['flash_type'] = 'info';
+    }
+} catch (PDOException $e) {
+    file_put_contents($debug_log, "❌ AUTO CLEANUP ERROR: " . $e->getMessage() . "\n", FILE_APPEND);
+}
+
 // ✅ Get all announcements (exclude soft deleted)
 $show_deleted = isset($_GET['show_deleted']) ? true : false;
 
@@ -618,10 +639,11 @@ require_once '../includes/navbar_admin.php';
                 <h5 class="modal-title">Edit Pengumuman</h5>
                 <a href="announcements.php" class="btn-close"></a>
             </div>
-            <form method="POST" action="announcements.php" enctype="multipart/form-data" id="editAnnouncementForm">
-                <input type="hidden" name="announcement_id" value="<?= $edit_announcement['id'] ?>">
-                <input type="hidden" name="remove_image" id="removeImageFlag" value="0">
-                <div class="modal-body">
+                <form method="POST" action="announcements.php" enctype="multipart/form-data" id="editAnnouncementForm">
+                    <input type="hidden" name="announcement_id" value="<?= $edit_announcement['id'] ?>">
+                    <input type="hidden" name="remove_image" id="removeImageFlag" value="0">
+                    <input type="hidden" name="update_announcement" value="1">  <!-- ✅ TAMBAHKAN INI -->
+                    <div class="modal-body">
                     <div class="mb-3">
                         <label class="form-label">Judul Pengumuman *</label>
                         <input type="text" class="form-control" name="title" 

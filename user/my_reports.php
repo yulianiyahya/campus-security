@@ -212,20 +212,32 @@ require_once '../includes/navbar_user.php';
                                         <?php echo date('d/m/Y H:i', strtotime($report['created_at'])); ?>
                                     </small>
                                 </td>
-                                <td>
-                                    <div class="d-flex align-items-start">
-                                        <span class="me-2"><?php echo htmlspecialchars($report['icon'] ?? '📋'); ?></span>
-                                        <div>
-                                            <div class="fw-bold">
-                                                <?php echo htmlspecialchars($report['title']); ?>
+                                    <td>
+                                        <div class="d-flex align-items-start">
+                                            <?php 
+                                            // Render icon - check if it's Font Awesome or emoji
+                                            $icon = $report['icon'] ?? 'clipboard';
+                                            
+                                            // Check if icon is emoji (contains non-ASCII characters) or Font Awesome class
+                                            if (preg_match('/[^\x00-\x7F]/', $icon)) {
+                                                // It's an emoji (Unicode character)
+                                                echo '<span class="me-2">' . htmlspecialchars($icon) . '</span>';
+                                            } else {
+                                                // It's a Font Awesome class name
+                                                echo '<i class="fas fa-' . htmlspecialchars($icon) . ' me-2 text-primary"></i>';
+                                            }
+                                            ?>
+                                            <div>
+                                                <div class="fw-bold">
+                                                    <?php echo htmlspecialchars($report['title']); ?>
+                                                </div>
+                                                <small class="text-muted">
+                                                    <i class="fas fa-tag me-1"></i>
+                                                    <?php echo htmlspecialchars($report['category_name']); ?>
+                                                </small>
                                             </div>
-                                            <small class="text-muted">
-                                                <i class="fas fa-tag me-1"></i>
-                                                <?php echo htmlspecialchars($report['category_name']); ?>
-                                            </small>
                                         </div>
-                                    </div>
-                                </td>
+                                    </td>
                                 <td>
                                     <small>
                                         <i class="fas fa-building me-1"></i>

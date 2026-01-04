@@ -217,7 +217,19 @@ require_once '../includes/navbar_user.php';
                                 <div class="d-flex w-100 justify-content-between align-items-start">
                                     <div class="flex-grow-1">
                                         <div class="d-flex align-items-center mb-2">
-                                            <span class="me-2"><?php echo $report['icon'] ?? '📋'; ?></span>
+                                            <?php 
+                                            // Render icon - check if it's Font Awesome or emoji
+                                            $icon = $report['icon'] ?? 'clipboard';
+                                            
+                                            // Check if icon is emoji (contains non-ASCII characters) or Font Awesome class
+                                            if (preg_match('/[^\x00-\x7F]/', $icon)) {
+                                                // It's an emoji (Unicode character)
+                                                echo '<span class="me-2 fs-5">' . htmlspecialchars($icon) . '</span>';
+                                            } else {
+                                                // It's a Font Awesome class name
+                                                echo '<i class="fas fa-' . htmlspecialchars($icon) . ' me-2 text-primary fs-5"></i>';
+                                            }
+                                            ?>
                                             <h6 class="mb-0"><?php echo htmlspecialchars($report['title']); ?></h6>
                                         </div>
                                         <p class="mb-1 text-muted small">
@@ -420,29 +432,6 @@ require_once '../includes/navbar_user.php';
                         </div>
                     <?php endforeach; ?>
                 <?php endif; ?>
-            </div>
-        </div>
-
-        <!-- Help Card -->
-        <div class="card border-primary">
-            <div class="card-header bg-primary text-white">
-                <h5 class="mb-0"><i class="fas fa-question-circle me-2"></i>Butuh Bantuan?</h5>
-            </div>
-            <div class="card-body">
-                <p class="mb-3">Jika Anda mengalami situasi darurat, segera hubungi:</p>
-                <div class="d-grid gap-2">
-                    <a href="tel:112" class="btn btn-danger">
-                        <i class="fas fa-phone me-2"></i>Emergency: 112
-                    </a>
-                    <a href="tel:021-xxx-xxxx" class="btn btn-outline-primary">
-                        <i class="fas fa-phone me-2"></i>Satpam Kampus
-                    </a>
-                </div>
-                <hr>
-                <small class="text-muted">
-                    <i class="fas fa-info-circle me-1"></i>
-                    Untuk laporan non-darurat, gunakan form laporan di atas.
-                </small>
             </div>
         </div>
     </div>
